@@ -7,20 +7,20 @@
 
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=starphone
-PKG_VERSION:=2016-08-22
+PKG_NAME:=starphone-server
+PKG_VERSION:=2016-08-10
 PKG_RELEASE=$(PKG_SOURCE_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/nls.mk
 
-define Package/starphone
-  SECTION:= wpcore-starphone
-  CATEGORY:= Wpcore-starphone
+define Package/starphone-server
+  SECTION:=wpcore-starphone
+  CATEGORY:=Wpcore-starphone
   TITLE:=A Simple Audio Test Program
 endef
 
-define Package/starphone/description
+define Package/starphone-server/description
   A Simple Audio Test Program
 endef
 
@@ -29,9 +29,9 @@ define Build/Prepare
 	$(CP) -r src/. $(PKG_BUILD_DIR)
 endef
 
-define Package/starphone/install
+define Package/starphone-server/install
 	$(INSTALL_DIR) $(1)/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/bin/
 endef
 
-$(eval $(call BuildPackage,starphone))
+$(eval $(call BuildPackage,starphone-server))
