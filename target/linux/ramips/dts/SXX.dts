@@ -7,7 +7,7 @@
 	model = "SXX";
 
 	chosen {
-		bootargs = "console=ttyS1,115200";
+		bootargs = "console=ttyS1,57600";
 	};
 	
 	palmbus@10000000 {
@@ -41,43 +41,90 @@
 
 				partition@50000 {
 					label = "firmware";
-					reg = <0x50000 0x7b0000>;
+					reg = <0x50000 0>; /* all remaining size */
 				};
 			};
 		};
-        
-        /*
-        i2s@a00 {
-            status = "okay";
-        };
-        */
-        
-        pcm@2000 {
-            status = "okay";
-        };
-    
-        gdma@2800 {
-            status = "okay";
-        };
-        
-        uart@500 {
-            status = "okay";
-        };
+		spi@b40 {
+			status = "okay";
+
+			/* for 2 flash chip to work correctly */
+			m25p80@1 {
+				status = "disabled";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				compatible = "jedec,spi-nor";
+				reg = <0 0>;
+				linux,modalias = "m25p80", "s25fl064k";
+				spi-max-frequency = <10000000>;
+
+				partition@0 {
+					label = "data";
+					reg = <0x0 0x0>;
+					/*read-only;*/
+				};
+
+			};
+
+			spidev@0 {
+				compatible_bak = "spidev";
+				compatible = "lineartechnology,ltc2488";
+				spi-max-frequency = <10000000>;
+				reg = <0>;
+			};
+
+			/*
+			mmc_slot@1 {
+				compatible = "mmc-spi-slot";
+				reg = <0 0>;
+				voltage-ranges = <3300 3300>;
+				spi-max-frequency = <10000000>;
+				interrupt-parent = <&intc>;
+				interrupts = <8>;
+			};
+			*/
+		};
+
+		gpio@660 {
+			/* GPIO #22 ~ #27 */
+			status = "okay";
+		};
+
+//		i2s@a00 {
+//			/*status = "okay";*/
+//			codec = <&wm8510>;
+//		};
+		pcm@2000 {
+			status = "okay";
+		};
+		gdma@2800 {
+			status = "okay";
+		};
+		
+		uart@500 {
+			/* uart to mcu */
+			status = "okay";
+		};
 	};
 
 	pinctrl {
 		state_default: pinctrl0 {
 			gpio {
-				ralink,group = "i2c", "jtag";
+				ralink,group = "i2c","jtag";
 				ralink,function = "gpio";
 			};
-            uartf {
-                ralink,group = "uartf";
-                ralink,function = "pcm uartf";
-            };
+            		uartf {
+                		ralink,group = "uartf";
+                		ralink,function = "pcm gpio";
+            		};
+			phy_led {
+				ralink,group = "led";
+				/*ralink,function = "led";*/
+				ralink,function = "gpio";
+			};
 		};
 	};
-
+	
 	ethernet@10100000 {
 		mtd-mac-address = <&factory 0x4>;
 	};
@@ -94,7 +141,7 @@
 			gpios = <&gpio0 13 1>;
 		};
 	};
-
+	
 	wmac@10180000 {
 		ralink,mtd-eeprom = <&factory 0>;
 		ralink,led-polarity = <1>;
@@ -107,28 +154,135 @@
 	ohci@101c1000 {
 		status = "okay";
 	};
-    
-    /*
-    codec: es9038-hifi {
-		compatible = "ralink,es9038-hifi";
+    	gpio-export {
+		compatible = "gpio-export";
+		#size-cells = <0>;
+
+		gpio0 {
+			gpio-export,name = "gpio0";
+			gpio-export,direction_may_change = <1>;
+			gpio-export,output = <1>;
+			gpios = <&gpio0 0 0>;
+		};
+
+		/* UARTF */
+		gpio7 {
+			/* UARTF_RTS_N */
+			gpio-export,name = "gpio7";
+			gpio-export,direction_may_change = <1>;
+			gpios = <&gpio0 7 0>;
+		};
+		gpio8 {
+			/* UARTF_TXD */
+			gpio-export,name = "gpio8";
+			gpio-export,direction_may_change = <1>;
+			gpio-export,output = <1>;
+			gpios = <&gpio0 8 0>;
+		};
+		gpio9 {
+			/* UARTF_CTS_N */
+			gpio-export,name = "gpio9";
+			gpio-export,direction_may_change = <1>;
+			gpios = <&gpio0 9 0>;
+		};
+		gpio10 {
+			/* UARTF_RXD */
+			gpio-export,name = "gpio10";
+			gpio-export,direction_may_change = <1>;
+			gpios = <&gpio0 10 0>;
+		};
+
+		/* JTAG */
+		gpio17 {
+			/* JTAG_TDO */
+			gpio-export,name = "gpio17";
+			gpio-export,direction_may_change = <1>;
+			gpio-export,output = <1>;
+			gpios = <&gpio0 17 0>;
+		};
+		gpio18 {
+			/* JTAG_TDI */
+			gpio-export,name = "gpio18";
+			gpio-export,direction_may_change = <1>;
+			gpio-export,output = <1>;
+			gpios = <&gpio0 18 0>;
+		};
+		gpio19 {
+			/* JTAG_TMS */
+			gpio-export,name = "gpio19";
+			gpio-export,direction_may_change = <1>;
+			gpio-export,output = <1>;
+			gpios = <&gpio0 19 0>;
+		};
+		gpio20 {
+			/* JTAG_TCLK */
+			gpio-export,name = "gpio20";
+			gpio-export,direction_may_change = <1>;
+			gpio-export,output = <1>;
+			gpios = <&gpio0 20 0>;
+		};
+		gpio21 {
+			/* JTAG_TRST_N */
+			gpio-export,name = "gpio21";
+			gpio-export,direction_may_change = <1>;
+			gpios = <&gpio0 21 0>;
+		};
+
+		/* ETH LEDs */
+		gpio22 {
+			/* ETH0_LED */
+			gpio-export,name = "gpio22";
+			gpio-export,direction_may_change = <1>;
+			gpios = <&gpio1 0 0>;
+		};
+		gpio23 {
+			/* ETH1_LED */
+			gpio-export,name = "gpio23";
+			gpio-export,direction_may_change = <1>;
+			gpios = <&gpio1 1 0>;
+		};
+		gpio24 {
+			/* ETH2_LED */
+			gpio-export,name = "gpio24";
+			gpio-export,direction_may_change = <1>;
+			gpios = <&gpio1 2 0>;
+		};
+		gpio25 {
+			/* ETH3_LED */
+			gpio-export,name = "gpio25";
+			gpio-export,direction_may_change = <1>;
+			gpios = <&gpio1 3 0>;
+		};
+		gpio26 {
+			/* ETH4_LED */
+			gpio-export,name = "gpio26";
+			gpio-export,direction_may_change = <1>;
+			gpios = <&gpio1 4 0>;
+		};
 	};
     
-    sound {
-        compatible = "ralink,rt5350-es9038";
-        model = "rt5350-es9038";
-        cpu-dai = <&i2s>;
-        codec-dai = <&codec>;
-    };
-    */
-    
-    codec: sxx-pcm-codec {
+    	codec: sxx-pcm-codec {
 		compatible = "ralink,sxx-pcm-codec";
-	};
+    	};
     
-    sound: sxx-pcm-machine {
-        compatible = "ralink,sxx-pcm-machine";
-        model = "sxx-pcm-machine";
-        cpu-dai = <&pcm>;
-        codec-dai = <&codec>;
-    };
+    	sound: sxx-pcm-machine {
+        	compatible = "ralink,sxx-pcm-machine";
+        	model = "sxx-pcm-machine";
+        	cpu-dai = <&pcm>;
+        	codec-dai = <&codec>;
+    	};
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		wan {
+			label = "rt5350:net:wan";
+			gpios = <&gpio1 4 0>; /* GPIO #26 */
+			linux,default-trigger = "netdev";
+		};
+
+		lan {
+			label = "rt5350:net:lan";
+			gpios = <&gpio1 0 0>; /* GPIO #22 */
+		};
+	};
 };
