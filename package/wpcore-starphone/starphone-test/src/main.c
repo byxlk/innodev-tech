@@ -179,7 +179,7 @@ int main(int argc, char **argv)
     //if(argc != 0)
     //{
         _DEBUG("Entry Test Mode ....");
-        si3050_test_main(argc, argv);
+        //si3050_test_main(argc, argv);
         _DEBUG("Quit Test Mode ....");
     //}
     //play();

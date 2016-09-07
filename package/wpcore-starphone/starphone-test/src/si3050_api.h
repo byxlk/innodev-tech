@@ -7,6 +7,7 @@ void si3050_hw_reset(void);
 
 void si3050_sys_init(void);
 
+void si3050_power_up_si3019(void);
 
 #endif
 

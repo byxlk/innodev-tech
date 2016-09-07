@@ -31,9 +31,7 @@
 
 /* Debug INTERFACE INFORMATION */
 #if GPIO_SPI_DEBUG
-#define _DEBUG(msg...)  \
-do{ \
-            printk("[DEBUG][%s: %d] ",__FUNCTION__,__LINE__); \
+#define _DEBUG(msg...)  do{ printk("[DEBUG][%s: %d] ",__FUNCTION__,__LINE__); \
             printk(msg); \
             printk("\n"); \
 }while(0);
@@ -42,15 +40,31 @@ do{ \
 #endif
 
 #if GPIO_SPI_ERROR
-#define _ERROR(msg...) \
-do{ \
-            printk("[ERROR][%s: %d] ",__FUNCTION__,__LINE__); \
+#define _ERROR(msg...) do{ printk("[ERROR][%s: %d] ",__FUNCTION__,__LINE__); \
             printk(msg); \
             printk("\n"); \
 }while(0);
 #else
 #define _ERROR(msg...);
 #endif
+
+
+#define DELAY_DAT (500)
+#define DELAY_CS (10)
+
+#define DELAY_CLK_L (100)
+#define DELAY_VAL (100)
+#define DELAY_CLK_H (200)
+
+//#define DELAY_DAT (5)
+//#define DELAY_CS (1)
+
+//#define DELAY_CLK_L (1)
+//#define DELAY_VAL (1)
+//#define DELAY_CLK_H (2)
+
+
+#define GPIO_BIT(x, y) ((((0x01 << (x)) & (y)) == 0)? GPIO_VAL_LOW : GPIO_VAL_HIGH)
 
 #define rt5350_reg_read(addr) __raw_readl(ioremap((addr), 4))
 #define rt5350_reg_write(addr, val) __raw_writel((val), ioremap((addr), 4))
@@ -185,14 +199,14 @@ static inline int set_gpio_value(unsigned char gpio_port, unsigned char gpio_val
 #if USING_IO_REMAP
         if(gpio_port < 22 && gpio_port > 0)
         {
-                 if(gpio_val == GPIO_DIR_INPUT)
+                 if(gpio_val == GPIO_VAL_LOW)
                         *MAP_GPIO21_00_DATA &= ~(0x1 << gpio_port);
                  else                        
                         *MAP_GPIO21_00_DATA |= (0x1 << gpio_port);
         }
         else if(gpio_port < 28 && gpio_port > 21)
         {
-                 if(gpio_val == GPIO_DIR_INPUT)
+                 if(gpio_val == GPIO_VAL_LOW)
                         *MAP_GPIO27_22_DATA  &= ~(0x1 << gpio_port);
                  else                        
                         *MAP_GPIO27_22_DATA |= (0x1 << gpio_port);
@@ -232,14 +246,14 @@ static inline int get_gpio_value(unsigned char gpio_port)
 #if USING_IO_REMAP
         if(gpio_port < 22 && gpio_port > 0)
         {
-                if(*MAP_GPIO21_00_DATA & (0x1 << gpio_port))
+                if((*MAP_GPIO21_00_DATA) & (0x1 << gpio_port))
                         return GPIO_VAL_HIGH;
                 else
                         return GPIO_VAL_LOW;                 
         }
         else if(gpio_port < 28 && gpio_port > 21)
         {
-                 if(*MAP_GPIO27_22_DATA & (0x1 << gpio_port))
+                 if((*MAP_GPIO27_22_DATA) & (0x1 << gpio_port))
                         return GPIO_VAL_HIGH;
                 else
                         return GPIO_VAL_LOW;
@@ -275,21 +289,197 @@ static inline int get_gpio_value(unsigned char gpio_port)
 }
 
 
-static void gpio_spi_byte_write(unsigned char reg, unsigned char val);
-static unsigned char gpio_spi_byte_read(unsigned char reg);
+static int gpio_spi_byte_write(unsigned char reg, unsigned char val)
+{
+        int i = 0;
+        
+        // first: send 0x20
+        udelay(DELAY_DAT);
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_LOW); // CS
+        udelay(DELAY_CS);
+        for(i =0; i < 8; i++)
+        {
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_LOW); // CLK
+                udelay(DELAY_CLK_L);
+                set_gpio_value(GPIO_SPI_SDI, GPIO_BIT((7-i), 0x20)); 
+                udelay(DELAY_VAL);
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_HIGH); // CLK
+                udelay(DELAY_CLK_H);
+        }
+        udelay(DELAY_CS);
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH); // CS
+        udelay(DELAY_DAT);
 
+        //second: send address
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_LOW); // CS
+        udelay(DELAY_CS);
+        for(i =0; i < 8; i++)
+        {
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_LOW); // CLK
+                udelay(DELAY_CLK_L);
+                set_gpio_value(GPIO_SPI_SDI, GPIO_BIT((7-i), reg)); 
+                udelay(DELAY_VAL);
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_HIGH); // CLK
+                udelay(DELAY_CLK_H);
+        }
+        udelay(DELAY_CS);
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH); // CS
+        udelay(DELAY_DAT);
+
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_LOW); // CS
+        udelay(DELAY_CS);
+        for(i =0; i < 8; i++)
+        {
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_LOW); // CLK
+                udelay(DELAY_CLK_L);
+                set_gpio_value(GPIO_SPI_SDI, GPIO_BIT((7-i), val)); 
+                udelay(DELAY_VAL);
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_HIGH); // CLK
+                udelay(DELAY_CLK_H);
+        }
+        udelay(DELAY_CS);
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH); // CS
+        udelay(DELAY_DAT);
+
+        return 0;
+}
+static unsigned char gpio_spi_byte_read(unsigned char reg)
+{
+        int i = 0;
+        unsigned char regVal = 0x00;
+        
+        //_DEBUG("step 1: send 0x60");
+        
+        // first: send 0x60
+        udelay(DELAY_DAT);
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_LOW); // CS       
+        udelay(DELAY_CS);
+        for(i =0; i < 8; i++)
+        {
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_LOW); // CLK
+                udelay(DELAY_CLK_L);
+                set_gpio_value(GPIO_SPI_SDI, GPIO_BIT((7-i), 0x60)); 
+                udelay(DELAY_VAL);
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_HIGH); // CLK
+                udelay(DELAY_CLK_H);
+        }
+        udelay(DELAY_CS);
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH); // CS
+        udelay(DELAY_DAT);
+
+         //_DEBUG("step 2: send address 0x%x",reg);
+         
+        //second: send address
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_LOW); // CS
+        udelay(DELAY_CS);
+        for(i =0; i < 8; i++)
+        {
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_LOW); // CLK
+                udelay(DELAY_CLK_L);
+                set_gpio_value(GPIO_SPI_SDI, GPIO_BIT((7-i), reg)); 
+                udelay(DELAY_VAL);
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_HIGH); // CLK
+                udelay(DELAY_CLK_H);
+        }
+        udelay(DELAY_CS);
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH); // CS
+        udelay(DELAY_DAT);
+        
+        //_DEBUG("step 3: read data");
+        
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_LOW); // CS
+        udelay(DELAY_CS);
+        for(i =0; i < 8; i++)
+        {
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_LOW); // CLK
+                udelay(DELAY_CLK_L);
+                regVal |= ((get_gpio_value(GPIO_SPI_SDO) == 0)? 0x00 : (0x01 << (7-i))); 
+                udelay(DELAY_VAL);
+                set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_HIGH); // CLK
+                udelay(DELAY_CLK_H);
+        }
+        udelay(DELAY_CS);
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH); // CS
+        udelay(DELAY_DAT);
+
+        return regVal;
+}
 
 
 /////////////////////////////////////////////////////////////////////////
+static void si3050_get_ver_info(void)
+{
+        unsigned char sys_ver_val = 0x00;
+        unsigned char line_ver_val = 0x00;
+        
+        _DEBUG("Get si3050 infomation Start ...");        
+        
+        sys_ver_val = gpio_spi_byte_read(11);        
+        line_ver_val = gpio_spi_byte_read(13);
+        
+        _DEBUG("\n");
+        _DEBUG("Read reg[11] Value = 0x%0x",sys_ver_val);
+        _DEBUG("Read reg[13] Value = 0x%0x",line_ver_val);
+        
+        switch((sys_ver_val & 0xF0) >> 4)
+        {
+                case 0x01:
+                         _DEBUG("Line-Side ID[si3018]: 0x01");
+                        break;
+                case 0x03:
+                        _DEBUG("Line-Side ID[si3019]: 0x03");
+                        break;
+                case 0x04:
+                        _DEBUG("Line-Side ID[si3011]: 0x04");
+                        break;
+                default:
+                        _DEBUG("Line-Side ID[Unknown]: 0x%0x ",(sys_ver_val & 0xF0) >> 4); 
+                        break;
+        }
+        
+        _DEBUG("System-Side Revision: 0x%0x",(sys_ver_val & 0x0F));       
+        _DEBUG("Line-Side Device Revision: 0x%0x",((line_ver_val & 0x3C) >> 2));
+        _DEBUG("\n");
+        
+}
+
+static void si3050_hw_reset(void)
+{
+        udelay(50*1000);
+        set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_LOW); // RESET
+        udelay(50*1000);
+        udelay(50*1000);
+        udelay(50*1000);
+        udelay(50*1000);
+        //udelay(50*1000);
+        //udelay(50*1000);      
+        //sleep(1);
+        set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_HIGH); // RESET
+        udelay(50*1000);
+        udelay(50*1000);
+        udelay(50*1000);
+        udelay(50*1000);
+        udelay(50*1000);
+        udelay(50*1000);
+        //usleep(50*1000);
+        //usleep(50*1000);
+        //usleep(50*1000);
+        //usleep(50*1000);
+}
 
 
+void si3050_power_up_si3019(void)
+{
+        gpio_spi_byte_write(6, 0x00);
+}
 
+
+/////////////////////////////////////////////////////////////////////////
 static struct class *gpio_spi_class;
 
 static int gpio_spi_open(struct inode *inode, struct file *file)
 {
 #if USING_IO_REMAP
-    /* ÅäÖÃÏàÓŠµÄÒýœÅÓÃÓÚGPIO */
     /*
         MAP_GPIOMODE:
             bit6:   JTAG_GPIO_MODE 1:GPIO Mode
@@ -297,7 +487,7 @@ static int gpio_spi_open(struct inode *inode, struct file *file)
     */
     *MAP_GPIOMODE |= (0x7<<2)|(0x1<<6);
 
-    /* œ«GPIO#7¡¢GPIO#8¡¢GPIO#9¡¢GPIO#10¡¢GPIO#17¡¢GPIO#18ÉèÖÃÎªÊä³ö */
+    /* Config GPIO#7,8,9,10,17,18 as output mode */
     *MAP_GPIO21_00_DIR |= (1<<7)|(1<<8)|(1<<9)|(1<<10)|(1<<17)|(1<<18);
 #else
 
@@ -348,13 +538,12 @@ unsigned long arg)
     return 0;
 }
 
-/* 1.·ÖÅä¡¢ÉèÖÃÒ»žöfile_operationsœá¹¹Ìå */
+/* 1. malloc and config file_operations structer */
 static struct file_operations gpio_spi_fops = {
-    /* ÕâÊÇÒ»žöºê£¬ÍÆÏò±àÒëÄ£¿éÊ±×Ô¶¯ŽŽœšµÄ__this_module±äÁ¿ */
     .owner              = THIS_MODULE,                  
     .open               = gpio_spi_open,
     .write          = gpio_spi_write,
-//    .read           = gpio_spi_read,
+//    .read           = gpio_spi_byte_read,
     .unlocked_ioctl = gpio_spi_unlocked_ioctl,
     .release            = gpio_spi_close,
 };
@@ -364,18 +553,19 @@ static int __init gpio_spi_init(void)
 {
     unsigned int gpio_cfg = 0;
     
-    /* 2.×¢²á */
+    /* 2. Register Char device */
     major = register_chrdev(0, "gpio_spi", &gpio_spi_fops);
 
-    /* 3.×Ô¶¯ŽŽœšÉè±žœÚµã */
-    /* ŽŽœšÀà */
+    /* 3. Automatic create device node */
+    /* Create Class */
     gpio_spi_class = class_create(THIS_MODULE, "motor");
-    /* ÀàÏÂÃæŽŽœšÉè±žœÚµã */
+    
+    /* subdevice node in class */
     device_create(gpio_spi_class, NULL, MKDEV(major, 0), NULL, "motor");       // /dev/motor
 
 #if USING_IO_REMAP
-    /* 4.Ó²ŒþÏà¹ØµÄ²Ù×÷ */
-    /* Ó³ÉäŒÄŽæÆ÷µÄµØÖ· */
+    /* 4. Oprater with hardware related */
+    /* map GPIO register */
     gpio_ioremap_init();
 #endif
 
@@ -396,13 +586,45 @@ static int __init gpio_spi_init(void)
     set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_HIGH);
     set_gpio_value(GPIO_SPI_SDI, GPIO_VAL_HIGH);
     set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_HIGH);
-
+    _DEBUG("Config gpio value complete...");
+    
     /* FOR TEST */
     mdelay(2);
     set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_LOW);
     mdelay(250);
     set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_HIGH);
     mdelay(250);
+    _DEBUG("Reset si3050 complete...");
+    
+        // Check the Version to make sure SPI Conmunication is OK
+        si3050_get_ver_info();
+    /*
+        //Enable si3050 PCM interface 
+        regCfg = gpio_spi_byte_read(33);
+        regCfg |= (0x1 << 3) | (0x1 << 5); // Enable PCM & u-Law
+        regCfg &= ~(0x1 << 4);
+        gpio_spi_write(33, regCfg);
+    
+        //Specific county Seting for Taiwan
+        regCfg = gpio_spi_byte_read(16);
+        regCfg &= ~((0x1 << 0) & (0x1 << 1) & (0x1 << 4) &  (0x1 << 6)); // OHS RZ RT
+        gpio_spi_write(16, regCfg);
+    
+        regCfg = gpio_spi_byte_read(26);
+        regCfg |= (0x1 << 6) | (0x1 << 7); // DCV[1:0] = 11
+        regCfg &= ~((0x1 << 1) & (0x1 << 4) & (0X1 << 5));
+        gpio_spi_write(26, regCfg);
+    
+        regCfg = gpio_spi_byte_read(30);
+        regCfg &= ~((0x1 << 0) & (0x1 << 1) & (0x1 << 2) & (0x1 << 3) & (0x1 << 4));
+        gpio_spi_write(30, regCfg);
+    
+        regCfg = gpio_spi_byte_read(31);
+        regCfg &= ~(0x1 << 3); // OHS2 = 0
+        gpio_spi_write(31, regCfg);
+    
+        si3050_power_up_si3019();
+    */        
     
     return 0;
 }

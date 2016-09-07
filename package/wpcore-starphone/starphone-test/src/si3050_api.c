@@ -21,7 +21,7 @@ void si3050_get_ver_info(void)
         _DEBUG("Get si3050 infomation Start ...");        
         
         sys_ver_val = gpio_spi_read(11);        
-        line_ver_val = gpio_spi_read(13);
+        //line_ver_val = gpio_spi_read(13);
         
         _DEBUG("\n");
         _DEBUG("Read reg[11] Value = 0x%0x",sys_ver_val);
@@ -52,30 +52,36 @@ void si3050_get_ver_info(void)
 void si3050_hw_reset(void)
 {
         usleep(50*1000);
-        //set_gpio_value(GPIO_RESET_VAL, GPIO_VAL_LOW); // RESET
+        set_gpio_value(GPIO_RESET_VAL, GPIO_VAL_LOW); // RESET
         usleep(50*1000);
         usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);      
+        usleep(50*1000);
+        usleep(50*1000);
+        usleep(50*1000);
+        usleep(50*1000);      
         //sleep(1);
-        //set_gpio_value(GPIO_RESET_VAL, GPIO_VAL_HIGH); // RESET
+        set_gpio_value(GPIO_RESET_VAL, GPIO_VAL_HIGH); // RESET
         usleep(50*1000);
         usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
+        usleep(50*1000);
+        usleep(50*1000);
+        usleep(50*1000);
+        usleep(50*1000);
+        usleep(50*1000);
+        usleep(50*1000);
+        usleep(50*1000);
+        usleep(50*1000);
 }
 
 
+void si3050_power_up_si3019(void)
+{
+        gpio_spi_write(6, 0x00);
+}
+
 void si3050_sys_init(void)
 {
+    unsigned char regCfg = 0;
 
     //初始化gpio - SPI初始方向和值
     _DEBUG("Config gpio direction and value start...");
@@ -90,14 +96,42 @@ void si3050_sys_init(void)
     set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_HIGH); // CLK
     set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_HIGH); // CS
     set_gpio_value(GPIO_SPI_SDI_VAL, GPIO_VAL_HIGH); // SDI     
-    set_gpio_value(GPIO_RESET_VAL, GPIO_VAL_HIGH); // RESET
+    //set_gpio_value(GPIO_RESET_VAL, GPIO_VAL_HIGH); // RESET
     _DEBUG("Config gpio value complete...");
     
-    //si3050_hw_reset(); //reset for power up 
+    si3050_hw_reset(); //reset for power up 
     _DEBUG("Reset si3050 complete...");
-    
+
+    // Check the Version to make sure SPI Conmunication is OK
     si3050_get_ver_info();
-    
+/*
+    //Enable si3050 PCM interface 
+    regCfg = gpio_spi_read(33);
+    regCfg |= (0x1 << 3) | (0x1 << 5); // Enable PCM & u-Law
+    regCfg &= ~(0x1 << 4);
+    gpio_spi_write(33, regCfg);
+
+    //Specific county Seting for Taiwan
+    regCfg = gpio_spi_read(16);
+    regCfg &= ~((0x1 << 0) & (0x1 << 1) & (0x1 << 4) &  (0x1 << 6)); // OHS RZ RT
+    gpio_spi_write(16, regCfg);
+
+    regCfg = gpio_spi_read(26);
+    regCfg |= (0x1 << 6) | (0x1 << 7); // DCV[1:0] = 11
+    regCfg &= ~((0x1 << 1) & (0x1 << 4) & (0X1 << 5));
+    gpio_spi_write(26, regCfg);
+
+    regCfg = gpio_spi_read(30);
+    regCfg &= ~((0x1 << 0) & (0x1 << 1) & (0x1 << 2) & (0x1 << 3) & (0x1 << 4));
+    gpio_spi_write(30, regCfg);
+
+    regCfg = gpio_spi_read(31);
+    regCfg &= ~(0x1 << 3); // OHS2 = 0
+    gpio_spi_write(31, regCfg);
+
+    si3050_power_up_si3019();
+*/    
     return ;
 }
+
 

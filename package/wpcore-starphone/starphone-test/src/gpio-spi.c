@@ -100,56 +100,56 @@ unsigned char gpio_spi_read(unsigned char reg)
         //_DEBUG("step 1: send 0x60");
         
         // first: send 0x60
-        usleep(5*1000);
+        usleep(DAT_DELAY);
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_LOW); // CS       
-        usleep(100);
+        usleep(CS_DELAY);
         for(i =0; i < 8; i++)
         {
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_LOW); // CLK
-                usleep(100);
+                usleep(CLK_L_DELAY);
                 set_gpio_value(GPIO_SPI_SDI_VAL, GPIO_BIT((7-i), 0x60)); 
-                usleep(9*100);
+                usleep(VAL_DELAY);
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_HIGH); // CLK
-                usleep(1*1000);
+                usleep(CLK_H_DELAY);
         }
-        usleep(100);
+        usleep(CS_DELAY);
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_HIGH); // CS
-        usleep(5*1000);
+        usleep(DAT_DELAY);
 
          //_DEBUG("step 2: send address 0x%x",reg);
          
         //second: send address
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_LOW); // CS
-        usleep(100);
+        usleep(CS_DELAY);
         for(i =0; i < 8; i++)
         {
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_LOW); // CLK
-                usleep(100);
+                usleep(CLK_L_DELAY);
                 set_gpio_value(GPIO_SPI_SDI_VAL, GPIO_BIT((7-i), reg)); 
-                usleep(9*100);
+                usleep(VAL_DELAY);
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_HIGH); // CLK
-                usleep(1*1000);
+                usleep(CLK_H_DELAY);
         }
-        usleep(100);
+        usleep(CS_DELAY);
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_HIGH); // CS
-        usleep(5*1000);
+        usleep(DAT_DELAY);
         
         //_DEBUG("step 3: read data");
         
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_LOW); // CS
-        usleep(100);
+        usleep(CS_DELAY);
         for(i =0; i < 8; i++)
         {
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_LOW); // CLK
-                usleep(100);
+                usleep(CLK_L_DELAY);
                 regVal |= ((get_gpio_value(GPIO_SPI_SDO_VAL) == 0)? 0x00 : (0x01 << (7-i))); 
-                usleep(9*100);
+                usleep(VAL_DELAY);
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_HIGH); // CLK
-                usleep(1*1000);
+                usleep(CLK_H_DELAY);
         }
-        usleep(100);
+        usleep(CS_DELAY);
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_HIGH); // CS
-        usleep(5*1000);
+        usleep(DAT_DELAY);
         
         return regVal;
 }
@@ -159,52 +159,52 @@ void gpio_spi_write(unsigned char reg, unsigned char val)
         int i = 0;
         
         // first: send 0x20
-        usleep(5*1000);
+        usleep(DAT_DELAY);
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_LOW); // CS
-        usleep(100);
+        usleep(CS_DELAY);
         for(i =0; i < 8; i++)
         {
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_LOW); // CLK
-                usleep(100);
+                usleep(CLK_L_DELAY);
                 set_gpio_value(GPIO_SPI_SDI_VAL, GPIO_BIT((7-i), 0x20)); 
-                usleep(9*100);
+                usleep(VAL_DELAY);
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_HIGH); // CLK
-                usleep(1*1000);
+                usleep(CLK_H_DELAY);
         }
-        usleep(100);
+        usleep(CS_DELAY);
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_HIGH); // CS
-        usleep(0*1000);
+        usleep(DAT_DELAY);
 
         //second: send address
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_LOW); // CS
-        usleep(100);
+        usleep(CS_DELAY);
         for(i =0; i < 8; i++)
         {
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_LOW); // CLK
-                usleep(100);
+                usleep(CLK_L_DELAY);
                 set_gpio_value(GPIO_SPI_SDI_VAL, GPIO_BIT((7-i), reg)); 
-                usleep(9*100);
+                usleep(VAL_DELAY);
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_HIGH); // CLK
-                usleep(1*1000);
+                usleep(CLK_H_DELAY);
         }
-        usleep(100);
+        usleep(CS_DELAY);
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_HIGH); // CS
-        usleep(5*1000);
+        usleep(DAT_DELAY);
 
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_LOW); // CS
-        usleep(100);
+        usleep(CS_DELAY);
         for(i =0; i < 8; i++)
         {
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_LOW); // CLK
-                usleep(100);
+                usleep(CLK_L_DELAY);
                 set_gpio_value(GPIO_SPI_SDI_VAL, GPIO_BIT((7-i), val)); 
-                usleep(9*100);
+                usleep(VAL_DELAY);
                 set_gpio_value(GPIO_SPI_CLK_VAL, GPIO_VAL_HIGH); // CLK
-                usleep(1*1000);
+                usleep(CLK_H_DELAY);
         }
-        usleep(100);
+        usleep(CS_DELAY);
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_HIGH); // CS
-        usleep(5*1000);
+        usleep(DAT_DELAY);
         
 }
 

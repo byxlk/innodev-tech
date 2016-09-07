@@ -3,7 +3,7 @@ CC = gcc
 XX = g++
 CFLAGS = -Wall -O
 
-TARGET = starphone
+TARGET = wifi-phone
 
 %.o: %.c
 	 $(CC) $(CFLAGS) -c $< -o $@
@@ -16,8 +16,8 @@ SOURCES = \
 	si3050_api.c \
 	test.c \
 	pcm.c \
-   	main.c
-
+    	main.c
+	
 OBJS = $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
 
 
@@ -27,4 +27,4 @@ $(TARGET) : $(OBJS)
 
 clean:
 	rm *.o wifi-phone
-
+	

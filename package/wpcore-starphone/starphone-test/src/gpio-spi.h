@@ -2,6 +2,13 @@
 #ifndef GPIO_SPI_H
 #define GPIO_SPI_H
 
+#define DAT_DELAY (10*1000)
+#define CS_DELAY (3*1000)
+
+#define CLK_L_DELAY (3*1000)
+#define VAL_DELAY (2*1000)
+#define CLK_H_DELAY (5*1000)
+
 #define GPIO_DIR_OUTPUT "out"
 #define GPIO_DIR_INPUT "in"
 #define  GPIO_VAL_HIGH "1"
