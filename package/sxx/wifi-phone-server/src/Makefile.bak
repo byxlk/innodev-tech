@@ -1,0 +1,34 @@
+﻿CC = gcc
+
+CXX = g++
+CFLAGS = -Wall -O
+CROSS_CFLAGS := --sysroot=${HOME}/work/openwrt-rt5350/staging_dir/target-mipsel_24kec+dsp_musl-1.1.12/ -I/${HOME}/work/openwrt-rt5350/staging_dir/target-mipsel_24kec+dsp_musl-1.1.12/usr/include
+
+TARGET = wifi-phone-server
+
+%.o: %.c
+	 $(CC) $(CFLAGS) -c $< -o $@
+
+%.o:%.cpp
+	 $(CXX) $(CFLAGS) -c $< -o $@
+
+SOURCES = \
+        si3050_ctrl.c \
+	dtmf.c \
+	uLawCodec.c \
+	usbAudioPSTN.c \
+	tcp_server.c \
+	udp_broadcast.c \
+	main.c 
+
+	
+OBJS = $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
+
+
+$(TARGET) : $(OBJS)
+	 $(CC)  $(CROSS_CFLAGS)  $(OBJS) -g -O2 -o $(TARGET)  -lpthread -lm -lasound -lspeexdsp -DMAIN
+	 chmod a+x $(TARGET)
+
+clean:
+	rm *.o wp-server
+	
