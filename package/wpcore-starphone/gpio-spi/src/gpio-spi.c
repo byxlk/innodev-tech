@@ -117,16 +117,19 @@ volatile unsigned long *MAP_GPIO21_00_DATA;
 volatile unsigned long *MAP_GPIO27_22_DIR;
 volatile unsigned long *MAP_GPIO27_22_DATA;
 
-
+struct si3050_reg {
+    unsigned int addr;
+    unsigned int val;
+};
 
 
 /////////////////////////////////////////////////////////////////////////
 static void gpio_ioremap_init(void)
 {
-        MAP_GPIOMODE = (volatile unsigned long *)ioremap(GPIOMODE_BASE+GPIOMODE_OFFSET, 4);
-        MAP_GPIO21_00_DIR = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO21_00_DIR, 4);
-        MAP_GPIO21_00_DATA = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO21_00_DATA, 4);
-        MAP_GPIO27_22_DIR = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO27_22_DIR, 4);
+    MAP_GPIOMODE = (volatile unsigned long *)ioremap(GPIOMODE_BASE+GPIOMODE_OFFSET, 4);
+    MAP_GPIO21_00_DIR = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO21_00_DIR, 4);
+    MAP_GPIO21_00_DATA = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO21_00_DATA, 4);
+    MAP_GPIO27_22_DIR = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO27_22_DIR, 4);
         MAP_GPIO27_22_DATA = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO27_22_DATA, 4);
 }
 
@@ -467,6 +470,10 @@ static void si3050_hw_reset(void)
         //usleep(50*1000);
 }
 
+static void si3050_sw_reset(void)
+{
+    
+}
 
 void si3050_power_up_si3019(void)
 {
@@ -479,20 +486,7 @@ static struct class *gpio_spi_class;
 
 static int gpio_spi_open(struct inode *inode, struct file *file)
 {
-#if USING_IO_REMAP
-    /*
-        MAP_GPIOMODE:
-            bit6:   JTAG_GPIO_MODE 1:GPIO Mode
-            bit4:2: UARTF 111:GPIO Mode
-    */
-    *MAP_GPIOMODE |= (0x7<<2)|(0x1<<6);
-
-    /* Config GPIO#7,8,9,10,17,18 as output mode */
-    *MAP_GPIO21_00_DIR |= (1<<7)|(1<<8)|(1<<9)|(1<<10)|(1<<17)|(1<<18);
-#else
-
-
-#endif
+    
     return 0;
 }
 
@@ -506,34 +500,77 @@ static int gpio_spi_close(struct inode *inode, struct file *file)
 static ssize_t gpio_spi_write(struct file *file, const char __user *buf, 
 size_t size, loff_t *ppos)
 {
-    unsigned int val;
-
-    copy_from_user(&val, buf, 4);
-#if USING_IO_REMAP
-
-    if(val & 0x1)
+    unsigned int raVal; //High byte: value Low byte: address
+    int retVal = -1;
+    
+    copy_from_user(&raVal, buf, 4);
+    
+    retVal = gpio_spi_byte_write((raVal & 0xff), ((raVal & 0xff00) >> 8));
+    if(retVal < 0)
     {
-        *MAP_GPIO21_00_DATA |= (1<<17)|(1<<18);
+        _ERROR("Write value(0x%0x) to register(0x%0x) failed.",(raVal & 0xFF00) >> 8, raVal & 0xFF);
+        return retVal;
     }
-    else
-    {
-        *MAP_GPIO21_00_DATA &= ~((1<<17)|(1<<18));
-    }
-#else
 
-#endif
-
-    return 1;
+    return 4;
 }
 
-static long gpio_spi_unlocked_ioctl(struct file *file, unsigned int cmd, 
-unsigned long arg)
+static ssize_t gpio_spi_read(struct file *file, char __user *buf, size_t size, loff_t *ppos)
 {
-//#if USING_IO_REMAP
-    
-//#else
+    unsigned int regVal = 0xa5;
+    unsigned int regAddr = 0xFF;
 
-//#endif
+    if (size != 1)
+        return -EINVAL;
+    
+    copy_from_user(&regAddr, buf, 4);
+    if(0xFF == regAddr)
+    {
+        _ERROR();
+        return -1;
+    }
+    regVal = gpio_spi_byte_read(regAddr);
+
+    copy_to_user(buf, &key_val, 4);
+  
+    return 4;
+
+}
+
+static long gpio_spi_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+    struct si3050_reg regVal;
+
+    memset(&regVal, 0, sizeof(si3050_reg));
+    copy_from_user(&regVal, (const void __user *)arg, sizeof(si3050_reg));
+    _DEBUG("copy_from_user: addr = %x val = %x",regVal.addr,regVal.val);
+
+    switch(cmd)
+    {
+        case IOCTL_GPIO_SPI_WRITE:
+            gpio_spi_byte_write(regVal.addr, regVal.val);
+            break;
+        case IOCTL_GPIO_SPI_READ:
+            regVal.val = gpio_spi_byte_read(regVal.addr);
+            copy_to_user((void __user *)(arg), &regVal, 8);
+            break;
+        case IOCTL_SET_RESET_PIN_HIGH:
+            set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_HIGH); // RESET
+            break;
+        case IOCTL_SET_RESET_PIN_LOW:
+            set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_LOW); // RESET
+            break;
+        case IOCTL_SI3050_HW_RESET:
+            si3050_hw_reset();
+            break;
+        case IOCTL_SI3050_SW_RESET:
+            si3050_sw_reset();
+            break;
+        default:
+            _ERROR("Unknown command ... ");
+            break;
+    }
+
 
     return 0;
 }
@@ -543,7 +580,7 @@ static struct file_operations gpio_spi_fops = {
     .owner              = THIS_MODULE,                  
     .open               = gpio_spi_open,
     .write          = gpio_spi_write,
-//    .read           = gpio_spi_byte_read,
+    .read           = gpio_spi_read,
     .unlocked_ioctl = gpio_spi_unlocked_ioctl,
     .release            = gpio_spi_close,
 };
