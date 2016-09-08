@@ -63,6 +63,12 @@
 //#define DELAY_VAL (1)
 //#define DELAY_CLK_H (2)
 
+#define IOCTL_GPIO_SPI_WRITE 0
+#define IOCTL_GPIO_SPI_READ 1
+#define IOCTL_SET_RESET_PIN_HIGH 2
+#define IOCTL_SET_RESET_PIN_LOW 3
+#define IOCTL_SI3050_HW_RESET 4
+#define IOCTL_SI3050_SW_RESET 5
 
 #define GPIO_BIT(x, y) ((((0x01 << (x)) & (y)) == 0)? GPIO_VAL_LOW : GPIO_VAL_HIGH)
 
@@ -526,12 +532,12 @@ static ssize_t gpio_spi_read(struct file *file, char __user *buf, size_t size, l
     copy_from_user(&regAddr, buf, 4);
     if(0xFF == regAddr)
     {
-        _ERROR();
+        _ERROR("copy_from_user error");
         return -1;
     }
     regVal = gpio_spi_byte_read(regAddr);
 
-    copy_to_user(buf, &key_val, 4);
+    copy_to_user(buf, &regVal, 4);
   
     return 4;
 
@@ -541,8 +547,9 @@ static long gpio_spi_unlocked_ioctl(struct file *file, unsigned int cmd, unsigne
 {
     struct si3050_reg regVal;
 
-    memset(&regVal, 0, sizeof(si3050_reg));
-    copy_from_user(&regVal, (const void __user *)arg, sizeof(si3050_reg));
+    memset(&regVal, 0, sizeof(regVal));
+
+    copy_from_user(&regVal, (const void __user *)arg, sizeof(regVal));
     _DEBUG("copy_from_user: addr = %x val = %x",regVal.addr,regVal.val);
 
     switch(cmd)
@@ -552,7 +559,7 @@ static long gpio_spi_unlocked_ioctl(struct file *file, unsigned int cmd, unsigne
             break;
         case IOCTL_GPIO_SPI_READ:
             regVal.val = gpio_spi_byte_read(regVal.addr);
-            copy_to_user((void __user *)(arg), &regVal, 8);
+            copy_to_user((void __user *)(arg), &regVal, sizeof(regVal));
             break;
         case IOCTL_SET_RESET_PIN_HIGH:
             set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_HIGH); // RESET
@@ -588,7 +595,7 @@ static struct file_operations gpio_spi_fops = {
 int major;
 static int __init gpio_spi_init(void)
 {
-    unsigned int gpio_cfg = 0;
+    //unsigned int gpio_cfg = 0;
     
     /* 2. Register Char device */
     major = register_chrdev(0, "gpio_spi", &gpio_spi_fops);
