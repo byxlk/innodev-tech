@@ -25,7 +25,7 @@
 #include <asm/uaccess.h>
 
 
-#define GPIO_SPI_DEBUG 1
+#define GPIO_SPI_DEBUG 0 
 #define GPIO_SPI_ERROR 1
 #define USING_IO_REMAP 1
 
@@ -126,6 +126,7 @@ volatile unsigned long *MAP_GPIO27_22_DATA;
 struct si3050_reg {
     unsigned int addr;
     unsigned int val;
+    
 };
 
 
@@ -136,15 +137,15 @@ static void gpio_ioremap_init(void)
     MAP_GPIO21_00_DIR = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO21_00_DIR, 4);
     MAP_GPIO21_00_DATA = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO21_00_DATA, 4);
     MAP_GPIO27_22_DIR = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO27_22_DIR, 4);
-        MAP_GPIO27_22_DATA = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO27_22_DATA, 4);
+    MAP_GPIO27_22_DATA = (volatile unsigned long *)ioremap(GPIO_REG_BASE+GPIO27_22_DATA, 4);
 }
 
 static void gpio_mode_init(void)
 {
 #if USING_IO_REMAP
-        *MAP_GPIOMODE &= ~((0x1 << 2) | (0x1 << 3));
-        *MAP_GPIOMODE |= (0x1 << 4);// JTAG_GPIO_MODE     
-        *MAP_GPIOMODE |= (0x1 << 6);// UARTF_SHARE_MODE  PCM + GPIO = b100
+    *MAP_GPIOMODE &= ~((0x1 << 2) | (0x1 << 3));
+    *MAP_GPIOMODE |= (0x1 << 4);// JTAG_GPIO_MODE     
+    *MAP_GPIOMODE |= (0x1 << 6);// UARTF_SHARE_MODE  PCM + GPIO = b100
 #else
     unsigned int gpio_cfg = 0;
     
@@ -596,16 +597,16 @@ int major;
 static int __init gpio_spi_init(void)
 {
     //unsigned int gpio_cfg = 0;
-    
+    printk("Load gpio-spi driver for gpio17,18,20,21");    
     /* 2. Register Char device */
     major = register_chrdev(0, "gpio_spi", &gpio_spi_fops);
 
     /* 3. Automatic create device node */
     /* Create Class */
-    gpio_spi_class = class_create(THIS_MODULE, "motor");
+    gpio_spi_class = class_create(THIS_MODULE, "gpio-spi");
     
     /* subdevice node in class */
-    device_create(gpio_spi_class, NULL, MKDEV(major, 0), NULL, "motor");       // /dev/motor
+    device_create(gpio_spi_class, NULL, MKDEV(major, 0), NULL, "gpio-spi");       // /dev/motor
 
 #if USING_IO_REMAP
     /* 4. Oprater with hardware related */
@@ -633,15 +634,15 @@ static int __init gpio_spi_init(void)
     _DEBUG("Config gpio value complete...");
     
     /* FOR TEST */
-    mdelay(2);
-    set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_LOW);
-    mdelay(250);
-    set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_HIGH);
-    mdelay(250);
-    _DEBUG("Reset si3050 complete...");
+    //mdelay(2);
+    //set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_LOW);
+    //mdelay(250);
+    //set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_HIGH);
+    //mdelay(250);
+    //_DEBUG("Reset si3050 complete...");
     
         // Check the Version to make sure SPI Conmunication is OK
-        si3050_get_ver_info();
+    //    si3050_get_ver_info();
     /*
         //Enable si3050 PCM interface 
         regCfg = gpio_spi_byte_read(33);
