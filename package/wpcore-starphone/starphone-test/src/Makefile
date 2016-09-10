@@ -3,7 +3,7 @@ CC = gcc
 XX = g++
 CFLAGS = -Wall -O
 
-TARGET = wifi-phone
+TARGET = starphone-test
 
 %.o: %.c
 	 $(CC) $(CFLAGS) -c $< -o $@
@@ -14,7 +14,6 @@ TARGET = wifi-phone
 SOURCES = \
 	gpio-spi.c \
 	si3050_api.c \
-	test.c \
 	pcm.c \
     	main.c
 	
@@ -26,5 +25,5 @@ $(TARGET) : $(OBJS)
 	 chmod a+x $(TARGET)
 
 clean:
-	rm *.o wifi-phone
+	rm *.o starphone-test
 	

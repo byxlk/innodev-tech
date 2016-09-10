@@ -1,6 +1,10 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include "pcm.h"
+
+
+
 #define DEBUG_FLAG 1
 #define ERROR_FLAG 1
 
@@ -23,6 +27,15 @@
 #else
 #define _ERROR(msg...)
 #endif
+
+
+typedef struct  {
+    struct pcm *si3050_pcm_out;
+    struct pcm *si3050_pcm_in;
+    unsigned char *pcm_dat_buff;
+    unsigned char phone_status;
+    unsigned char ring_count;
+}starphone_server;
 
 
 #endif

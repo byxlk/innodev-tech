@@ -2,45 +2,28 @@
 #ifndef GPIO_SPI_H
 #define GPIO_SPI_H
 
-#define DAT_DELAY (10*1000)
-#define CS_DELAY (3*1000)
+#define GPIO_SPI_DEVICE "/dev/gpio-spi"
 
-#define CLK_L_DELAY (3*1000)
-#define VAL_DELAY (2*1000)
-#define CLK_H_DELAY (5*1000)
+#define IOCTL_GPIO_SPI_WRITE 0
+#define IOCTL_GPIO_SPI_READ 1
+#define IOCTL_SET_RESET_PIN_HIGH 2
+#define IOCTL_SET_RESET_PIN_LOW 3
+#define IOCTL_SI3050_HW_RESET 4
+#define IOCTL_SI3050_SW_RESET 5
 
-#define GPIO_DIR_OUTPUT "out"
-#define GPIO_DIR_INPUT "in"
-#define  GPIO_VAL_HIGH "1"
-#define GPIO_VAL_LOW "0"
-
-#define GPIO_BIT(x, y) ((((0x01 << (x)) & (y)) == 0)? GPIO_VAL_LOW : GPIO_VAL_HIGH)
-
-#define GPIO_SPI_CLK_DIR  "/sys/class/gpio/gpio18/direction"
-#define GPIO_SPI_CS_DIR    "/sys/class/gpio/gpio17/direction"
-#define GPIO_SPI_SDI_DIR  "/sys/class/gpio/gpio21/direction"
-#define GPIO_SPI_SDO_DIR "/sys/class/gpio/gpio20/direction"
-#define GPIO_RESET_DIR      "/sys/class/gpio/gpio8/direction"
-#define GPIO_INT_DIR          "/sys/class/gpio/gpio10/direction"
+struct si3050_reg {
+    unsigned int addr;
+    unsigned int val;
+};
 
 
-#define GPIO_SPI_CLK_VAL "/sys/class/gpio/gpio18/value"
-#define GPIO_SPI_CS_VAL "/sys/class/gpio/gpio17/value"
-#define GPIO_SPI_SDI_VAL "/sys/class/gpio/gpio21/value"
-#define GPIO_SPI_SDO_VAL "/sys/class/gpio/gpio20/value"
-#define GPIO_RESET_VAL "/sys/class/gpio/gpio8/value"
-#define GPIO_INT_VAL "/sys/class/gpio/gpio10/value"
+int gpio_spi_write(unsigned char reg, unsigned char val);
 
-
-
-void gpio_spi_write(unsigned char reg, unsigned char val);
 unsigned char gpio_spi_read(unsigned char reg);
 
-inline int set_gpio_direction(const char *gpio_port, const char *gpio_dir);
-inline int set_gpio_value(const char *gpio_port, const char *gpio_val);
-inline int get_gpio_value(const char *gpio_port);
+void set_reset_pin_high(void);
 
-
+void set_reset_pin_low(void);
 
 
 #endif

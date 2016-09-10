@@ -46,7 +46,7 @@
 #define __user
 #include <sound/asound.h>
 
-#include "asoundlib.h"
+#include "pcm.h"
 
 #define PARAM_MAX SNDRV_PCM_HW_PARAM_LAST_INTERVAL
 #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)
@@ -153,9 +153,9 @@ static void param_init(struct snd_pcm_hw_params *p)
     p->info = ~0U;
 }
 
-#define PCM_ERROR_MAX 128
+//#define PCM_ERROR_MAX 128
 
-struct pcm {
+/*struct pcm {
     int fd;
     unsigned int flags;
     int running:1;
@@ -171,6 +171,7 @@ struct pcm {
     unsigned int noirq_frames_per_msec;
     int wait_for_avail_min;
 };
+*/
 
 unsigned int pcm_get_buffer_size(struct pcm *pcm)
 {

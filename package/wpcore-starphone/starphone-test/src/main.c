@@ -33,157 +33,174 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include<ctype.h>
+#include <malloc.h>
 
-#include "asoundlib.h"
+#include <termios.h> /* for tcxxxattr, ECHO, etc */
+#include <unistd.h> /* for STDIN_FILENO */
+
+
+#include "pcm.h"
 #include "si3050_api.h"
 #include "common.h"
-#include "test.h"
 
 
+/**************************************************************************** 
+getch()：Linux下的模拟实现
+* 在windows下可以通过#include <conio.h>使用getch()，但是conio.h并不是一个标准的头文件，
+* conio也不是标准的c库。所以如果在Linux下的c程序中#include <conio.h>，编程就会报错： No 
+* Such file or directory!
+* 那么如果想在Linux下使用与getch() 功能相同的函数，怎么办呢？我们可以通过以下的程序模拟实现
+* 
+* getch()。
+****************************************************************************/
 
-#define SAMPLE_RATE 8000
-#define CHANNEL 2
-#define BUFFER_SIZE (1024)
-
-unsigned short buffer[BUFFER_SIZE];
-
-
-void generate_sine(int freq, int volume)
+/*simulate windows' getch(), it works!!*/
+int getch (void)
 {
-    int i = 0;
-    for (i = 0; i < BUFFER_SIZE / CHANNEL; i++) {
-        double x = i * 2 * 3.1415926 / (SAMPLE_RATE / freq);
-        
-        unsigned short data = (unsigned short) (volume * sin(x) + 32768);
-        if (CHANNEL == 1) {
-            buffer[i] = data;
-        } else {
-            buffer[2 * i] = data;
-            buffer[2 * i + 1] = data;
-        }
-    }
+    int ch;
+    struct termios oldt, newt;
+
+    // get terminal input's attribute
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+
+    //set termios' local mode
+    newt.c_lflag &= ~(ECHO|ICANON);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    //read character from terminal input
+    ch = getchar();
+
+    //recover terminal's attribute
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
+    return ch;
 }
 
-void pcm_init_config(struct pcm_config* config)
-{
-    unsigned int channels = 2;
-    unsigned int rate = SAMPLE_RATE;
-    //unsigned int bits = 16;
-    unsigned int period_size = 128;
-    unsigned int period_count = 2;
-    
-    config->channels = channels;
-    config->rate = rate;
-    config->period_size = period_size;
-    config->period_count = period_count;
-    config->format = PCM_FORMAT_S16_LE;
-    config->start_threshold = 0;
-    config->stop_threshold = 0;
-    config->silence_threshold = 0;   
-}
 
-struct pcm* get_pcm_out()
-{
-    unsigned int card = 0;
-    unsigned int device = 0;
-    
-    struct pcm_config config;
-    struct pcm *pcm_out;
-
-    pcm_init_config(&config);
-    
-    pcm_out = pcm_open(card, device, PCM_OUT, &config);
-   	if (!pcm_out || !pcm_is_ready(pcm_out)) {
-        printf("Unable to open PCM device %u (%s)\n",
-                device, pcm_get_error(pcm_out));
-        return NULL;
-    }
-    
-    return pcm_out;
-}
-
-struct pcm* get_pcm_in()
-{
-    unsigned int card = 0;
-    unsigned int device = 0;
-    
-    struct pcm_config config;
-    struct pcm *pcm_in;
-
-    pcm_init_config(&config);
-    
-    pcm_in = pcm_open(card, device, PCM_IN, &config);
-   	if (!pcm_in || !pcm_is_ready(pcm_in)) {
-        printf("Unable to open PCM device %u (%s)\n",
-                device, pcm_get_error(pcm_in));
-        return NULL;
-    }
-    
-    return pcm_in;
-}
-
-int play()
-{
-    struct pcm *pcm_out = get_pcm_out();
-       
-    generate_sine(2000, 10000);
-    
-    while (1) {
-        if (!pcm_write(pcm_out, buffer, BUFFER_SIZE)) {
-            //printf("sucess in to out: %d\n", BUFFER_SIZE);	
-        } else {
-            printf("failed\n");
-            break;
-        }
-    }
-    
-    return 0;
-}
-
-void loopback()
-{
-    struct pcm *pcm_out = get_pcm_out();
-    struct pcm *pcm_in = get_pcm_in();
-    unsigned char buff[128];
-    
-    if (!pcm_out || !pcm_in)
-        return;
-    
-    printf("buffer size:%d %d\n", pcm_get_buffer_size(pcm_out), pcm_get_buffer_size(pcm_in));
-    
-    while(1) {
-        int ret = pcm_read(pcm_in, buff, sizeof(buff)); 
-        if (!ret) {
-                ret = pcm_write(pcm_out, buff, sizeof(buff));
-       		if (!ret) {
-                        continue;
-       			//printf("sucess in to out: %d\n", sizeof(buff));	
-       		} else {
-       		        printf("pcm_write return value: %d\n",ret);
-       			break;
-       		}
-       	} else {
-       	    printf("pcm_read return value: %d\n",ret);
-            break;
-        }
-    }
-    
-    printf("exit!\n");
-}
 
 int main(int argc, char **argv)
 {    
-    si3050_sys_init();
+    unsigned char menuFlag = 0;
+    unsigned char iMenuChoice;
+    unsigned char pcm_data_buf[128];
+    starphone_server *sps;
+
     
-     // add para  entry test mode
-    //if(argc != 0)
-    //{
-        _DEBUG("Entry Test Mode ....");
-        //si3050_test_main(argc, argv);
-        _DEBUG("Quit Test Mode ....");
-    //}
-    //play();
-    loopback();
+    _DEBUG("Si3050 voip test system, Start ...");
+    si3050_hw_reset();
+
+    _DEBUG("Perper memory init ...");
+    sps = (starphone_server *) malloc(sizeof(starphone_server));
+    if(NULL ==  sps)
+    {
+            _ERROR("malloc starphone_server struct faild.");
+            exit(-1);
+    }
+
+    _DEBUG("init pcm");
+    sps->pcm_dat_buff = pcm_data_buf;
+    si3050_pcm_dev_drv_init(sps);
+    si3050_get_ver_info();
+    //si3050_sw_reset(sps);
+    
+    // Start Show Test Menu and Process task events    
+    iMenuChoice = 10;//enter key
+    while(iMenuChoice != 'q' && iMenuChoice != 'Q')
+    {
+        
+        //system("clear");
+        if(menuFlag == 0)
+        {
+            printf("  *********** Voip WiFi Phone Auto Test sysytem ***********\n\n");
+            printf("  a. Get Si3050 version informations \n");
+            printf("  b. Reset si3050 by reset pin \n");
+            printf("  c. ReInit PCM driver \n");
+            printf("  d. Resered \n");
+            printf("  e. Resered\n");
+            printf("  f. Resered\n");
+            printf("  q. Quit\n\n");
+            printf("  Please input your Chioce(0-6): ");
+        }
+        iMenuChoice = getch();
+        if((iMenuChoice > 47 && iMenuChoice < 90) || 
+                (iMenuChoice > 64 && iMenuChoice < 91) || 
+                (iMenuChoice > 96 && iMenuChoice < 123))
+        {
+                printf("\n  You selected Title Number: %c \n\n",iMenuChoice);
+                menuFlag = 0;
+        }
+        else
+        {
+                menuFlag = 1;
+                continue;        
+        }
+        
+        switch (iMenuChoice)
+        {
+             case 'a': 
+             {                  
+                 si3050_get_ver_info();
+                 break;
+             }
+            case 'b': 
+            {
+                si3050_hw_reset();   
+                _DEBUG("hardware reset");
+                break;
+            }
+            case 'c':
+            {
+                si3050_close_pcm_in(sps);
+                si3050_close_pcm_out(sps);
+                si3050_pcm_dev_drv_init(sps);
+                _DEBUG("pcm init");
+                break;
+            }
+            case 'd': 
+            {
+                si3050_hw_reset();  
+                si3050_get_ver_info();
+                break;
+            }   
+            case 'e': 
+            {
+                si3050_hw_reset();  
+                si3050_close_pcm_in(sps);
+                si3050_close_pcm_out(sps);
+                si3050_pcm_dev_drv_init(sps);
+                si3050_get_ver_info();
+                break;
+            }
+            case 'f': 
+            {
+                si3050_sw_reset(sps);
+                break;
+            }
+            case 'q': 
+            {                  
+               printf("Quit system ...\n\n");
+                break;
+            }
+            case 'Q':
+                printf("Quit system ...\n\n");
+                break;
+            default: 
+            {
+                menuFlag = 1;
+                printf("Your select is unknow, please input again...");
+                break;
+            }
+        }
+    }
+
+    si3050_close_pcm_in(sps);
+    si3050_close_pcm_out(sps);
+    free(sps);
+
+    system("clear");
+    
     return 0;
 }
 
