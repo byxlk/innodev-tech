@@ -1,22 +1,18 @@
 /**
  * TCP Server
  */
-#define _GNU_SOURCE        // for pthread_setname_np
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <netinet/in.h>    // for sockaddr_in
-#include <arpa/inet.h>     // for socket
-#include <netinet/tcp.h>   // for TCP_KEEP*
+#include <netinet/in.h>//for sockaddr_in
+#include <arpa/inet.h>//for socket
 #include <pthread.h>
-
-#include "tcp_server.h"
-
+#include "usbModem.h"
 #define MAX 30
 #define PORT 55555
 
-// TODO: 把每一台機器的序號寫入 factory(mtd2) 中, 把序號當註冊時使用
 int busy = 0; // 是否通話中
 
 // clients
@@ -26,7 +22,6 @@ typedef struct _thread_arg {
 	int id; // 內線id
 	struct _thread_arg *peer; // 內線通話方資訊(有代表內線忙碌)
 	int busy; // 是否外線通話中
-	char device_id[64]; // device_id
 } thread_arg;
 
 typedef struct _thread_arg2 {
@@ -41,8 +36,7 @@ int _recv(int connfd, void* buf, int size) {
 	int n;
 	if( (n=recv(connfd, buf, size, 0)) < 0) {
 		perror("recv");
-		//pthread_exit(NULL);
-		return 0; // close socket
+		pthread_exit(NULL);
 	}
 	return n;
 }
@@ -76,26 +70,7 @@ void thread(void *t_arg) {
 		//printf("recv: n=%d\n", n);
 		if(n==0) {
 			printf("connection %d closed.\n", arg->connfd);
-			if(arg->busy) {
-				hangup(); // 如果不正常斷線, 再次掛斷電話
-				busy = 0; // 恢復狀態
-			}
-			// clear clients[i] data
-			int has_client_busy = 0;
-			for(i=0;i<MAX;i++) {
-				if(clients[i]->connfd == arg->connfd) {
-					// reset
-					//printf("found client...\n");
-					bzero(clients[i], sizeof(thread_arg));
-					break;
-				}
-				has_client_busy = has_client_busy || clients[i]->busy;
-			}
-			if(!has_client_busy) {
-				// 沒有人再忙碌了, 再次掛斷電話
-				hangup();
-				busy = 0;
-			}
+			hangup(); // 結束 modem
 			break;
 		} else {
 			buf[n] = 0;
@@ -123,8 +98,7 @@ void thread(void *t_arg) {
 	arg->connfd = 0;
 }
 
-void*  tcp_server(void) 
-{
+int tcp_server() {
 	if( pthread_setname_np(pthread_self(), "tcp_server") ) {
 		perror("pthread_setname_np");
 		pthread_exit(NULL);
@@ -144,37 +118,9 @@ void*  tcp_server(void)
 	saddr.sin_port = htons(PORT);
 	saddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	
-	int flag = 1, keep_idle = 60, keep_interval = 5, keep_count = 3;
-	int tcp_send_timeout = 10000; // 10s
+	int flag = 1;
 	if( setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)) < 0) {
-		perror("setsockopt(SO_REUSEADDR)");
-		exit(-1);
-	}
-	// 设置SO_KEEPALIVE选项，将这个选项设置为1，代表打开KeepAlive机制。
-	if( setsockopt(listenfd, SOL_SOCKET, SO_KEEPALIVE, &flag, sizeof(flag)) < 0) {
-		perror("setsockopt(SO_KEEPALIVE)");
-		exit(-1);
-	}
-	// 如果TCP连接上有 60 秒钟没有任何数据包传输，则启动保活机制，发送TCP Keep-alive机制。默认为2小时。
-	if( setsockopt(listenfd, IPPROTO_TCP, TCP_KEEPIDLE, &keep_idle, sizeof(flag)) < 0) {
-		perror("setsockopt(TCP_KEEPIDLE)");
-		exit(-1);
-	}
-	// 如果启动保活机制，则每隔 5 秒发送一个Keep-alive包。默认为75秒。
-	if( setsockopt(listenfd, IPPROTO_TCP, TCP_KEEPINTVL, &keep_interval, sizeof(flag)) < 0) {
-		perror("setsockopt(TCP_KEEPINTVL)");
-		exit(-1);
-	}
-	// 如果对端对 3 次Keep-alive数据包都没有正常响应，则判断对端已经崩溃。默认为9。
-	if( setsockopt(listenfd, IPPROTO_TCP, TCP_KEEPCNT, &keep_count, sizeof(flag)) < 0) {
-		perror("setsockopt(TCP_KEEPCNT)");
-		exit(-1);
-	}
-	// 如果发送方发送的数据包没有收到接收方回复的ACK数据包，则TCP Keep-alive机制就不会被启动
-	// 值为数据包被发送后未接收到ACK确认的最大时长，代表如果发送出去的数据包在10秒内未收到ACK确认，
-	// 则下一次调用send或者recv，则函数会返回-1，errno设置为ETIMEOUT，代表connection timeout。
-	if( setsockopt(listenfd, IPPROTO_TCP, TCP_USER_TIMEOUT, &tcp_send_timeout, sizeof(flag)) < 0) {
-		perror("setsockopt(TCP_USER_TIMEOUT)");
+		perror("setsockopt");
 		exit(-1);
 	}
 	if( bind(listenfd, (struct sockaddr*)&saddr, sizeof(saddr)) < 0) {
@@ -198,6 +144,7 @@ void*  tcp_server(void)
 		clients[i]->connfd = 0;
 		clients[i]->id = 0;
 		clients[i]->peer = NULL;
+		printf("initial clients status\n");
 	}
 	
 	// 啟動 pstn module
@@ -225,9 +172,8 @@ void*  tcp_server(void)
 		//arg = malloc(sizeof(thread_arg));
 		clients[i]->connfd = connfd;
 		clients[i]->caddr = caddr;
-		clients[i]->peer = NULL;
-		clients[i]->busy = 0;
-		clients[i]->id = i; // default internal_id
+		clients[i]->id = i;
+		printf("client id =%d\n",clients[i]->id);
 		//memcpy(&arg->caddr, &caddr, sizeof(caddr));
 		if(pthread_create(&id, NULL, (void*)thread, clients[i])) {
 			perror("pthread_create");
@@ -247,7 +193,7 @@ void broadcast_clients(char *msg)
 	for(i=0;i<MAX;i++) {
 		if(clients[i]->connfd != 0) {
 			// 送通知給每個 clients
-			// FIXME: 如果有 clients 網路不順, 可能會卡住, update: 加上 timeout 機制, 應該不會卡了?
+			// FIXME: 如果有 clients 網路不順, 可能會卡住
 			_send(clients[i]->connfd, msg, strlen(msg));
 		}
 	}
@@ -263,7 +209,7 @@ void handle_command(thread_arg2* arg2)
 		perror("pthread_setname_np");
 		return;
 	}
-	//printf("handle command: %s, length=%lu\n", buf, strlen(buf));
+	printf("handle command: %s, length=%lu\n", buf, strlen(buf));
 	
 	int i, j, len;
 	char *msg = NULL;
@@ -294,9 +240,6 @@ void handle_command(thread_arg2* arg2)
 		_send(arg->connfd, msg, strlen(msg));
 	}
 	else if(strncmp(buf, "dial:", 5)==0) { // dial:12345
-		// 檢查並線是否有摘機
-		pstn_status();
-
 		if(busy==1) {
 			msg = "busy\n"; //  關閉撥號狀態
 			_send(arg->connfd, msg, strlen(msg));
@@ -328,42 +271,58 @@ void handle_command(thread_arg2* arg2)
 			_send(arg->connfd, msg, strlen(msg));
 			return;
 		}
-		//modem_mute = 1; // 靜音, 避免干擾 dtmf tone
-		dtmf_tone(buf[4]);
+		modem_mute = 1; // 靜音, 避免干擾 dtmf tone
+		usleep(500000); // delay, 因為 modem 出聲音本來就有延遲
+		//char number[50];
+		//strncpy(number, buf+5, strlen(buf)-5);
+		char buf2[3] = {0x21, 0x1, 0};
+		if(buf[4]>=49 && buf[4]<=57) { // 1~9直接送
+			buf2[2] = buf[4]-48;
+		}else if(buf[4]=='*')  {
+			buf2[2] = 0xb;
+		}else if(buf[4]=='#') {
+			buf2[2] = 0xc;
+		}else if(buf[4]=='0') {
+			buf2[2] = 0xa;
+		}
+		send_pstn(3, buf2);
 		msg = "key_ok\n";
 		_send(arg->connfd, msg, strlen(msg));
-		//modem_mute = 0;
+		usleep(500000); // delay, 因為 modem 出聲音本來就有延遲
+		modem_mute = 0;
 		//exit(-1);
 	}
 	else if(strcmp(buf, "hangup")==0) {
-		msg = "ok\n";
-		if(arg->busy==1) {
-			hangup();
-		}
+		msg ="ok\n";
+		hangup();
+		busy = 0;
+		arg->busy=0;
 		_send(arg->connfd, msg, strlen(msg));
 	}
 	else if(strncmp(buf, "test_ring:", 10)==0) { // test_ring:12345 測試來電
-		msg = "ok\n";
+		msg ="ok\n";
 		char buf2[100];
 		sprintf(buf2, "external:%s\n", buf+10);
 		broadcast_clients(buf2);
 		_send(arg->connfd, msg, strlen(msg));
 	}
 	else if(strcmp(buf, "ring_end")==0) { // 響鈴停止: 來電停止, 或來電已被接起通知其他人關閉dialog
-		msg = "ok\n";
-		broadcast_clients("ring_end\n");
-		_send(arg->connfd, msg, strlen(msg));
+			msg ="ok\n";
+			broadcast_clients("ring_end\n");
+			_send(arg->connfd, msg, strlen(msg));
 	}
 	else if(strcmp(buf, "internal_end")==0) { // 結束內線通話
 		msg = "internal_end\n";
 		if(arg->peer != NULL) {
 			_send(arg->peer->connfd, msg, strlen(msg));
-			arg->peer->peer = NULL; // 清除對方
+			(*arg->peer).peer = NULL; // 清除對方
 			arg->peer = NULL; // 清除自己紀錄
+			arg->busy=0;
+			printf("id=%d",arg->id);
 		} else {
 			printf("peer is null??\n");
 		}
-		msg = "ok\n";
+		msg ="ok\n";
 		_send(arg->connfd, msg, strlen(msg));
 	}
 	else if(strcmp(buf, "pick_up")==0) { // 外線有人接起了
@@ -372,7 +331,6 @@ void handle_command(thread_arg2* arg2)
 		arg_hook.caddr = arg->caddr;
 		arg_hook.number = NULL;
 		pthread_t id;
-		arg->busy = 1;
 		_pthread_create(&id, (void*)off_hook, &arg_hook);
 		pthread_join(id, NULL);
 		msg = "on_hook\n";
@@ -381,11 +339,11 @@ void handle_command(thread_arg2* arg2)
 	else if(strncmp(buf, "internal:", 9)==0) { // test_dial:12345 內線呼叫
 		// find client with the id
 		for(i=0;i<MAX;i++) {
+			printf("enter internal top\n,internal id =%d\n",clients[i]->id);
 			if(clients[i]->id == atoi(buf+9)) { // atoi 會自動忽略無法轉的字元
 				// 對方忙線
 				if(clients[i]->peer != NULL || clients[i]->busy==1) {
-					printf(" clients[%d]: peer=%p, busy=%d\n", i, clients[i]->peer, clients[i]->busy);
-					msg = "busy\n";
+					msg ="busy\n";
 					_send(arg->connfd, msg, strlen(msg));
 					return;
 				}
@@ -405,7 +363,7 @@ void handle_command(thread_arg2* arg2)
 				return;
 			}
 		}
-		msg = "not found\n";
+		msg ="not found\n";
 		_send(arg->connfd, msg, strlen(msg));
 	}
 	else if(strncmp(buf, "register:", 9)==0) { // test_dial:12345 註冊分機號碼
@@ -419,30 +377,18 @@ void handle_command(thread_arg2* arg2)
 		}
 		// 沒重複, 登記成功
 		arg->id = atoi(buf+9);
-		msg = "register_ok\n";
-		_send(arg->connfd, msg, strlen(msg));
-	}
-	else if(strncmp(buf, "register_device:", 16)==0) {
-		// check exist
-		for(i=0;i<MAX;i++) {
-			if( (strcmp(clients[i]->device_id,buf+16)==0) && clients[i]->id!=0) {
-				// 重複登記, 刪除之前的
-				printf("remove old client...\n");
-				close(clients[i]->connfd);
-				bzero(clients[i], sizeof(thread_arg));
-			}
-		}
-		strcpy(arg->device_id, buf+16);
-		msg = "ok\n";
+		msg ="register_ok\n";
 		_send(arg->connfd, msg, strlen(msg));
 	}
 	else if(strncmp(buf, "deny", 4)==0) { // 拒接外線
 		// 拿起再馬上掛掉
-		printf(" *** tcp_server 'deny' cmd\n");
-		pstn_off_hook();
-		pstn_on_hook();
+		char buf2[2] = {0x12, 0}; // off-hook
+		send_pstn(2, buf2);
 		
-		msg = "ok\n";
+		buf2[0] = 0x13; // on-hook
+		send_pstn(2, buf2);
+		
+		msg ="ok\n";
 		_send(arg->connfd, msg, strlen(msg));
 	}
 	else if(strncmp(buf, "switch", 6)==0) { // 插接

@@ -16,24 +16,15 @@ void pstn_switch(); // 插接
 // PSTN
 void _cid_thread(); // pstn module
 //int send_pstn(unsigned int, unsigned char, ...);
-#ifdef __mips__
-int send_pstn(unsigned char cmd, unsigned char data);
-#else
 int send_pstn(unsigned int, unsigned char*);
-#endif
-//int modem_mute;
-void dtmf_tone(char num); // 通話中送出 dtmf tone
-void pstn_off_hook();
-void pstn_on_hook();
-void pstn_status(); // 是否有併線摘機
+int modem_mute;
 
 // dtmf & uLaw decoder
 int decode(char*);
 int16_t MuLaw_Decode(int8_t);
-int8_t MuLaw_Encode(int16_t);
 
 // for uclibc, no pthread_setname_np
-#ifdef __mips__
+#ifdef MIPS
 int pthread_setname_np(pthread_t thread, const char *name);
 #endif
 

@@ -8,51 +8,16 @@
 #include <string.h>
 #include <netinet/in.h>//for sockaddr_in
 #include <arpa/inet.h>//for socket
-#include <net/if.h> // for IFNAMSIZ, ifreq, etc
-#include <sys/ioctl.h>
 #include <pthread.h>
 
-#include "udp_broadcast.h"
-
-void get_brd_addr(char *brd_addr)
-{
-	int fd;
-	struct ifreq ifr;
-	
-	bzero(&ifr, sizeof(struct ifreq));
-	
-	fd = socket(AF_INET, SOCK_DGRAM, 0);
-
-	/* I want to get an IPv4 IP address */
-	ifr.ifr_addr.sa_family = AF_INET;
-
-	/* I want IP address attached to "eth0" */
-	strncpy(ifr.ifr_name, "br-lan", IFNAMSIZ-1);
-
-	char *ip;
-	do {
-		ioctl(fd, SIOCGIFBRDADDR, &ifr);
-		ip = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-		if(strcmp(ip, "4.0.0.0")==0) {
-			sleep(1); // 介面尚未設定好
-		} else {
-			break; // 找到 ip
-		}
-	} while(1);
-	
-	strcpy(brd_addr, ip);
-	close(fd);
-}
-
-void* udp_broadcast(void) 
-{
-#ifndef __mips__
+void udp_broadcast() {
+#ifndef MIPS
 	if( pthread_setname_np(pthread_self(), "udp_broadcast") ) {
 		perror("pthread_setname_np");
 		return;
 	}
 #endif
-		
+	
 	int sock;
 	if( (sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
 	{
@@ -67,18 +32,9 @@ void* udp_broadcast(void)
 		close(sock);
 		pthread_exit(NULL);
 	}
+	
+	char *ip = "255.255.255.255";
 	char * msg = "Hello 你好 World!";
-
-#ifndef __mips__00
-	//char *ip = "255.255.255.255";
-	char *ip = "192.168.50.255";
-#else
-	// 必須指定明確的介面廣播(ex: 192.168.50.255), 
-	// 不然 255.255.255.255 會從第一個滿足的介面廣播
-	char ip[16];
-	get_brd_addr(ip);
-	printf("  udp broadcast addr: %s\n", ip);
-#endif
 	
 	struct sockaddr_in si;
 	si.sin_family = AF_INET;
@@ -99,8 +55,6 @@ void* udp_broadcast(void)
 	return;
 }
 
-#ifndef MAIN
-int main() {
+int main0() {
 	udp_broadcast();
 }
-#endif

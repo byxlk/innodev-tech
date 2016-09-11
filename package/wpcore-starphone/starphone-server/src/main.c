@@ -1,14 +1,12 @@
-//#define _GNU_SOURCE
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
+//#include <unistd.h>
+//#include <string.h>
 #include <pthread.h>
 
-#include "tcp_server.h"
-#include "udp_broadcast.h"
-#include "si3050_ctrl.h"
-
+void tcp_server();
+void udp_broadcast();
 
 void main_thread(void* arg) {
 	tcp_server();
@@ -21,14 +19,9 @@ void _pthread_create(pthread_t *id, void*(routine)(void*), void *arg) {
 	}
 }
 
-int main(int argc, char **argv) 
-{
+int main() {
 	
 	pthread_t id;
-
-        printf("Init Si3050 PSTN SoC ...");
-        si3050_sys_init();
-    
 	printf("Start udp broadcast...\n");
 	_pthread_create(&id, (void*)udp_broadcast, NULL);
 	

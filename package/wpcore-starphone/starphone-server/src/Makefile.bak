@@ -1,10 +1,21 @@
-﻿CC = gcc
+﻿
+export ROOT_DIR=${PWD}/../../../../
+STAGING_DIR 	:= ${ROOT_DIR}staging_dir
+TARGET_MIPSEL	:= target-mipsel_24kec+dsp_musl-1.1.12
+TOOLCHAIN_MIPS	:= toolchain-mipsel_24kec+dsp_gcc-4.8-linaro_uClibc-0.9.33.2
 
-CXX = g++
+PATH := ${STAGING_DIR}/${TOOLCHAIN_MIPS}/bin/:${PATH}
+CROSS_CFLAGS := --sysroot=${STAGING_DIR}/${TARGET_MIPSEL}/ -I${STAGING_DIR}/${TARGET_MIPSEL}/usr/include
+
+CROSS_COMPILE := mipsel-openwrt-linux-
+
+CC = ${CROSS_COMPILE}gcc
+CXX = ${CROSS_COMPILE}g++
 CFLAGS = -Wall -O
-CROSS_CFLAGS := --sysroot=${HOME}/work/openwrt-rt5350/staging_dir/target-mipsel_24kec+dsp_musl-1.1.12/ -I/${HOME}/work/openwrt-rt5350/staging_dir/target-mipsel_24kec+dsp_musl-1.1.12/usr/include
 
-TARGET = wifi-phone-server
+TARGET = starphone-server
+
+
 
 %.o: %.c
 	 $(CC) $(CFLAGS) -c $< -o $@
@@ -13,22 +24,26 @@ TARGET = wifi-phone-server
 	 $(CXX) $(CFLAGS) -c $< -o $@
 
 SOURCES = \
-        si3050_ctrl.c \
-	dtmf.c \
-	uLawCodec.c \
-	usbAudioPSTN.c \
-	tcp_server.c \
+	usbModem.c \
 	udp_broadcast.c \
-	main.c 
+	tcp_server.c \
+	main.c \
+	dtmf.c \
+	uLawCodec.c
 
 	
 OBJS = $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
 
 
 $(TARGET) : $(OBJS)
-	 $(CC)  $(CROSS_CFLAGS)  $(OBJS) -g -O2 -o $(TARGET)  -lpthread -lm -lasound -lspeexdsp -DMAIN
-	 chmod a+x $(TARGET)
+	$(CC) -v
+	$(CC)  $(CROSS_CFLAGS)  $(SOURCES) -g -O2 -o $(TARGET) -lpthread -lm -lpulse-simple -lpulse -DMIPS -DMAIN 
+	chmod a+x $(TARGET)
+
+main:
+	gcc $(SOURCES) -g -O2 -o main -lpthread -lm -lpulse-simple -lpulse -DMAIN -DNO_MODEM
+	chmod a+x main
 
 clean:
-	rm *.o wp-server
+	rm *.o starphone-server main
 	
