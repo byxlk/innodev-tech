@@ -2,19 +2,26 @@
 ```
 git clone https://github.com/byxlk/openwrt-rt5350.git
 ```
+
+###切换分支
+```
+git checkout innodev-tech.com
+git branch
+```
+
 ###更新feeds
 ```
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 ```
-###选择目标板
+### make menuconfig 选择目标板
 ![](http://transing.bj.bcebos.com/rt5350-menuconfig.JPG)
 ###选择uboot
 ![](http://transing.bj.bcebos.com/rt5350-bootloader.JPG?responseContentDisposition=attachment)
 ![](http://transing.bj.bcebos.com/rt5350-uboot.JPG?responseContentDisposition=attachment)
 ###编译源码
 ```
-make -j8 V=s
+make -j8 V=99
 ```
 ###得到镜像如下
 ####其中openwrt-ramips-rt305x-sxx-u-boot.bin为uboot
@@ -35,9 +42,7 @@ run ll
 ![](http://transing.bj.bcebos.com/rt5350-flash4.JPG?responseContentDisposition=attachment)
 等待下载刷写完毕
 
-##3.测试wifi audio
-###接入声卡，如下图
-![](http://transing.bj.bcebos.com/IMG_20150727_222954.jpg?responseContentDisposition=attachment)
+##3.测试
 ###声卡测试，如下图
 ![](http://transing.bj.bcebos.com/rt5350-i2s.jpg?responseContentDisposition=attachment)
 ###正常的话，/dev/snd下应该有如下设备
