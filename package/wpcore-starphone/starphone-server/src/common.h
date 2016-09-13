@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <pthread.h>
+
 #include "pcm.h"
 
 
@@ -29,10 +31,15 @@
 #endif
 
 
-typedef struct  {
+typedef struct  _STARPHONE_SERVER{
+    //Thread para
+    pthread_t thread_id_upd;
+    pthread_t thread_id_tcp;
+    
     struct pcm *si3050_pcm_out;
     struct pcm *si3050_pcm_in;
     unsigned char *pcm_dat_buff;
+    
     unsigned char phone_status;
     unsigned char ring_count;
 }starphone_server;

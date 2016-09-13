@@ -18,7 +18,7 @@ define Package/starphone-server
   SECTION:=wpcore-starphone
   CATEGORY:=Wpcore-starphone
   TITLE:=A Simple Audio Test Program
-  DEPENDS:=+libpthread +libm +libpulse-simple +libpulse
+  DEPENDS:=+libpthread +libm
 endef
 
 define Package/starphone-server/description
@@ -30,7 +30,7 @@ define Build/Prepare
 	$(CP) -r src/. $(PKG_BUILD_DIR)
 endef
 
-TARGET_LDFLAGS := -lpthread -lm -lpulse-simple -lpulse
+TARGET_LDFLAGS := -lpthread -lm
 
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \

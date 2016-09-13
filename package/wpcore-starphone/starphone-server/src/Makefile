@@ -12,7 +12,12 @@ TARGET = starphone-server
 %.o:%.cpp
 	 $(XX) $(CFLAGS) -c $< -o $@
 
-SOURCES = usbModem.c udp_broadcast.c tcp_server.c main.c dtmf.c uLawCodec.c
+SOURCES = \
+	pcm.c \
+	gpio-spi.c \
+	si3050_api.c \
+	network_server.c \
+	main.c 
 	
 OBJS = $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
 
