@@ -42,6 +42,8 @@ void si3050_power_up_si3019(void);
 
 void si3050_pcm_dev_drv_init(starphone_server *sps);
 
+void *XW_Pthread_ModemCtrlDeamon(void *args);
+
 
 #endif
 

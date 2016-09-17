@@ -8,10 +8,7 @@
 #include <sys/ioctl.h>
 #include <linux/types.h>
 
-#include "gpio-spi.h"
-#include "common.h"
-
-
+#include "include/xw_export.h"
 
 int gpio_spi_write(unsigned char reg, unsigned char val)
 {

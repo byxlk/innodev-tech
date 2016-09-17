@@ -10,10 +10,7 @@
 #include <math.h>
 
 
-#include "common.h"
-#include "si3050_api.h"
-#include "pcm.h"
-#include "gpio-spi.h"
+#include "include/xw_export.h"
 
 
 
@@ -272,17 +269,17 @@ void si3050_hw_reset(void)
 }
 
 
-void si3050_power_up_si3019(void)
+void Si3050_Power_Up_Si3019(void)
 {
         gpio_spi_write(6, 0x00);
 }
 
-void si3050_sys_init(void)
+void Si3050_DAA_System_Init(void)
 {
     //unsigned char regCfg = 0;
 
      
-    si3050_hw_reset(); //reset for power up 
+    //si3050_hw_reset(); //reset for power up 
     _DEBUG("Reset si3050 complete...");
 
     
@@ -291,9 +288,15 @@ void si3050_sys_init(void)
     si3050_get_ver_info();
 
     
-    si3050_power_up_si3019();
+    //Si3050_Power_Up_Si3019();
 
     return ;
 }
 
+void *XW_Pthread_ModemCtrlDeamon(void *args)
+{
+
+
+        return 0;
+} 
 

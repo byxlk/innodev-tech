@@ -17,6 +17,15 @@ SOURCES = \
 	gpio-spi.c \
 	si3050_api.c \
 	network_server.c \
+	sys_tools.c \
+	sys_disktool.c \
+	sys_diskmanage.c \
+	usb_hotplug.c \
+	app_update.c \
+	message_queue.c \
+	pthread_manage.c \
+	sys_global.c \
+	module_boot.c \
 	main.c 
 	
 OBJS = $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))

@@ -46,7 +46,8 @@
 #define __user
 #include <sound/asound.h>
 
-#include "pcm.h"
+#include "include/xw_export.h"
+
 
 #define PARAM_MAX SNDRV_PCM_HW_PARAM_LAST_INTERVAL
 #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)

@@ -4,34 +4,36 @@
 #include <string.h>
 #include <pthread.h>
 
-#include "common.h"
-#include "network_server.h"
-
+#include "include/xw_export.h"
 
 
 int main(int argc, char **argv) 
 {	
-    starphone_server *sps;
-
+    char key;
     _DEBUG("Compile Time:%s",__TIME__);
     _DEBUG("Perper memory init ...");
     
-    sps = (starphone_server *) malloc(sizeof(starphone_server));
-    if(NULL ==  sps)
-    {
-            _ERROR("malloc starphone_server struct faild.");
-            exit(-1);
-    }
+    //启动各种系统应用
+    XW_SysModuleBoot();
 
-    _DEBUG("Start udp broadcast...\n");
-    XW_pthread_create(&sps->thread_id_upd,
-                                       (void*)XW_pthread_udp_broadcast, NULL);
+	//等待终端退出指令
+	_DEBUG("system boot complete ,please char  q toexit system !");
+    while(1)
+    {
+        key = XW_Tools_GetTtyInputChar();/*获得终端输入的字符*/
+        /*当设置自动重启时间到或关闭系统，用户输入q或者Q时，退出系统。*/
+        if( key == 'q' || key == 'Q' )
+        {
+            _DEBUG("recv exit key");
+            break;
+        }
+	}
+     _DEBUG("system maintenance is exit");
+   
+	//退出病关闭系统的各种应用
+    XW_SysModuleUnBoot();    
 	
-    //_DEBUG("Start tcp server...\n");
-    //_pthread_create(&id, (void*)tcp_server, NULL);
-	
-    //pthread_join(sps->thread_id_tcp, NULL);
-    pthread_join(sps->thread_id_upd, NULL);
-    
+    _DEBUG("system exit !");
+
     return 0;
 }
