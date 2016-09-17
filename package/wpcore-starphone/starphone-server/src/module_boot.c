@@ -56,9 +56,9 @@ void XW_SignalDo_handleSignal(int s)
 ****************************/
 int XW_SysModuleBoot(void)
 {
-    //DVR_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
+    SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
     /*初始化系统信息*/;
-    //DTSystemInfo->bDebugOpen = DebugFlag;
+    //DTSystemInfo->
 
     // init modules
     XW_SignalDo_InitSignal();/*异常信号的处理*/

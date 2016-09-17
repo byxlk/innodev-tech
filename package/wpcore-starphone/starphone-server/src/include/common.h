@@ -78,14 +78,15 @@ typedef struct  _STARPHONE_SERVER{
     //Thread para
     pthread_t thread_id_upd;
     pthread_t thread_id_tcp;
-    
+
+    //PCM
     struct pcm *si3050_pcm_out;
     struct pcm *si3050_pcm_in;
     unsigned char *pcm_dat_buff;
     
     unsigned char phone_status;
     unsigned char ring_count;
-}starphone_server;
+}SPS_SYSTEM_INFO_T;
 
 
 #define PROC_PARTITIONS "/proc/partitions"
@@ -93,20 +94,6 @@ typedef struct  _STARPHONE_SERVER{
 #define SYSTEM_CONFIG_FILE  "/mnt/img/systemconfig.dat"
 #define P2P_NATPORT 31000
 
-
-typedef enum
-{
-    NVP1104A_CHIP = 0,
-    NVP1108B_CHIP,
-    TW2868_CHIP,
-    NVP1104b_CHIP,
-    VIDEO_CHIP_TYPE = NVP1108B_CHIP
-} VIDEO_CHIP_T;
-
-
-#define NVP1104B_ADDR 0x60
-#define VIDEOCHIP_DEVNAME  "/dev/nc_vdec"
-//#define VIDEOCHIP_DEVNAME  "/dev/tw286xdev"
 
 #define   DOORDVR_CHANNEL_NUM         4
 #define   ViDevTotal       2
@@ -160,6 +147,25 @@ typedef sem_t           DVR_SEM_T;
 typedef time_t          DVR_TIME_T;
 typedef struct tm           DVR_TM_T;
 typedef struct timeval      DVR_TIMEV_T;
+
+typedef unsigned char           HI_U8;
+typedef unsigned short          HI_U16;
+typedef unsigned int            HI_U32;
+
+typedef signed char             HI_S8;
+typedef short                   HI_S16;
+typedef int                     HI_S32;
+
+#ifndef _M_IX86
+typedef unsigned long long  HI_U64;
+typedef long long           HI_S64;
+#else
+typedef __int64             HI_U64;
+typedef __int64             HI_S64;
+#endif
+
+typedef char                    HI_CHAR;
+#define HI_VOID                 void
 
 //----------------------------------------------------------------------------------------------------------------
 #define DVR_CREATE_THREAD(Func, Args)   do{                 \
@@ -557,29 +563,6 @@ typedef enum
     CURRENT_WORK_DISK_NULL,//Ã»ÓÐÓ²ÅÌ
 
 } tagWorkDiskNum;
-
-/*----------------------------------------------*
- * The common data type, will be used in the whole project.*
- *----------------------------------------------*/
-
-typedef unsigned char           HI_U8;
-typedef unsigned short          HI_U16;
-typedef unsigned int            HI_U32;
-
-typedef signed char             HI_S8;
-typedef short                   HI_S16;
-typedef int                     HI_S32;
-
-#ifndef _M_IX86
-    typedef unsigned long long  HI_U64;
-    typedef long long           HI_S64;
-#else
-    typedef __int64             HI_U64;
-    typedef __int64             HI_S64;
-#endif
-
-typedef char                    HI_CHAR;
-#define HI_VOID                 void
 
 /*----------------------------------------------*
  * const defination                             *

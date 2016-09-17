@@ -24,7 +24,6 @@ SOURCES = \
 	app_update.c \
 	message_queue.c \
 	pthread_manage.c \
-	sys_global.c \
 	module_boot.c \
 	main.c 
 	

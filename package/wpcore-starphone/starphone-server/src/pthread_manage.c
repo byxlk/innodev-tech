@@ -233,8 +233,7 @@ isSend, bool block)
     PTHREAD_BUF m_signal;
     //U8_T i = 10;
     STATE_PTHREAD *p;
-    p = ((STATE_PTHREAD *)XW_ManagePthread_GetPthreadState(pthread_id, channel
-));
+    p = ((STATE_PTHREAD *)XW_ManagePthread_GetPthreadState(pthread_id, channel));
     if(p->state == ALIVE)
     {
         p->power = PTHREAD_POWER_OFF;
@@ -260,8 +259,7 @@ isSend, bool block)
             //    sleep(2);
             //    i--;
             //}
-            if(XW_ManagePthread_ReadSignal(&m_signal, pthread_id,true) == 
-false)
+            if(XW_ManagePthread_ReadSignal(&m_signal, pthread_id,true) == false)
             {
                 _ERROR("PTHREAD_SNAPJPEG[%d] error !'\n", pthread_id);
             }
@@ -285,7 +283,7 @@ false)
 
 int ManagePthread_UdpBroadcast(void)
 {
-    _DEBUG("Start pthread: XW_Preview_pthread");
+    _DEBUG("Start pthread: XW_Pthread_Udp_Broadcast");
     if(pthread_create(&managePthread.g_pthread[PTHREAD_UDP_BROADCAST_ID] , 
 			NULL,(void * ( *)(void *)) XW_Pthread_Udp_Broadcast, NULL) != 0)
     {
@@ -300,7 +298,7 @@ int ManagePthread_UdpBroadcast(void)
 int ManagePthread_ClientConnectManage(void)
 {
 	/*串口通信管理*/
-	_DEBUG("Start pthread: XW_SerialCommunication_pthread");
+	_DEBUG("Start pthread: XW_Pthread_ClientConnectManage");
     if(pthread_create(&managePthread.g_pthread[PTHREAD_CLIENT_CONNECT_ID] , 
 			NULL, (void * ( *)(void *)) XW_Pthread_ClientConnectManage, NULL) != 0)
     {
@@ -314,7 +312,7 @@ int ManagePthread_ClientConnectManage(void)
 int ManagePthread_ClientApplicationManage(void)
 {
 	/*视频信号丢失时叠加无视频信号图片*/
-	_DEBUG("Start pthread: XW_VideoLostCheck_pthread");
+	_DEBUG("Start pthread: XW_Pthread_ClientApplicationManage");
     if(pthread_create(&managePthread.g_pthread[PTHREAD_CLIENT_MANAGE_ID] , NULL, 
         (void * ( *)(void *)) XW_Pthread_ClientApplicationManage, NULL) != 0)
     {
@@ -328,7 +326,7 @@ int ManagePthread_ClientApplicationManage(void)
 int ManagePthread_ModemCtrlDeamon(void)
 {
 	/*OSD叠加图片管理*/
-	_DEBUG("Start pthread: XW_OsdDisplay_pthread");
+	_DEBUG("Start pthread: XW_Pthread_ModemCtrlDeamon");
     if(pthread_create(&managePthread.g_pthread[PTHREAD_MODEM_CTRL_ID] , NULL, 
         (void * ( *)(void *)) XW_Pthread_ModemCtrlDeamon, NULL) != 0)
     {

@@ -75,7 +75,7 @@ struct pcm* si3050_get_pcm_out(void)
     return pcm_out;
 }
 
-void si3050_close_pcm_out(starphone_server *sps)
+void si3050_close_pcm_out(SPS_SYSTEM_INFO_T *sps)
 {
     close(sps->si3050_pcm_out->fd);
     free(sps->si3050_pcm_out);
@@ -100,7 +100,7 @@ struct pcm* si3050_get_pcm_in(void)
     
     return pcm_in;
 }
-void si3050_close_pcm_in(starphone_server *sps)
+void si3050_close_pcm_in(SPS_SYSTEM_INFO_T *sps)
 {
     close(sps->si3050_pcm_in->fd);
     free(sps->si3050_pcm_in);
@@ -198,7 +198,7 @@ void si3050_get_ver_info(void)
         gpio_spi_write(2, 0xc3);
 }
 
-void si3050_pcm_dev_drv_init(starphone_server *sps)
+void si3050_pcm_dev_drv_init(SPS_SYSTEM_INFO_T *sps)
 {
     sps->si3050_pcm_out = si3050_get_pcm_out();
     sps->si3050_pcm_in = si3050_get_pcm_in();
@@ -212,7 +212,7 @@ void si3050_pcm_dev_drv_init(starphone_server *sps)
 
 }
 
-void si3050_sw_reset(starphone_server *sps)
+void si3050_sw_reset(SPS_SYSTEM_INFO_T *sps)
 {
     unsigned char regCfg = 0;
 
@@ -278,7 +278,7 @@ void Si3050_DAA_System_Init(void)
 {
     //unsigned char regCfg = 0;
 
-     
+    SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
     //si3050_hw_reset(); //reset for power up 
     _DEBUG("Reset si3050 complete...");
 
@@ -295,7 +295,13 @@ void Si3050_DAA_System_Init(void)
 
 void *XW_Pthread_ModemCtrlDeamon(void *args)
 {
+        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
 
+        while(1)
+        {
+
+                sleep(10);
+        }
 
         return 0;
 } 

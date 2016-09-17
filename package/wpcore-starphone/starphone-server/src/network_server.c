@@ -58,11 +58,13 @@ int _send(int connfd, void* buf, int size)
 void *XW_Pthread_Udp_Broadcast(void *args)
 
 {
+        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
 	int sock;
         int broadcast = 1;
 	char *ip = "255.255.255.255";
 	char *msg = "Hello 你好 World!";
-	
+	size_t nBytes = 0;
+    
 	struct sockaddr_in si;
 
         //AF_INET: using tcp/ip & ipv4
@@ -90,7 +92,7 @@ void *XW_Pthread_Udp_Broadcast(void *args)
         printf("Sent msg: %s, socket %d to %s\n", msg, sock, ip);
 	while(1) {
 		/* send data */
-		size_t nBytes = sendto(sock, msg, strlen(msg), 0, (struct sockaddr*) &si, sizeof(si));             //
+		nBytes = sendto(sock, msg, strlen(msg), 0, (struct sockaddr*) &si, sizeof(si));             //
 
                 if(nBytes < 0)
                 {
@@ -106,6 +108,7 @@ void *XW_Pthread_Udp_Broadcast(void *args)
 
 void *XW_Pthread_ClientConnectManage(void *args)
 {
+        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
         int i;
         int flag = 1;
         int listenfd;
@@ -195,6 +198,7 @@ void *XW_Pthread_ClientConnectManage(void *args)
     
 void *XW_Pthread_ClientApplicationManage(void *args)
 {
+        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
         char buf[100];
 	//thread_arg arg = *(thread_arg*)t_arg;
 	thread_arg *arg = (thread_arg*)args;

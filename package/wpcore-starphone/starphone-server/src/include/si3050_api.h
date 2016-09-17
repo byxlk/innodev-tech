@@ -18,11 +18,11 @@ void si3050_pcm_init_config(struct pcm_config* config);
 
 struct pcm* si3050_get_pcm_out(void);
 
-void si3050_close_pcm_out( starphone_server *sps);
+void si3050_close_pcm_out( SPS_SYSTEM_INFO_T *sps);
 
 struct pcm* si3050_get_pcm_in(void);
 
-void si3050_close_pcm_in( starphone_server *sps);
+void si3050_close_pcm_in( SPS_SYSTEM_INFO_T *sps);
 
 int si3050_play_sine(void);
 
@@ -34,13 +34,11 @@ void si3050_get_ver_info(void);
 
 void si3050_hw_reset(void);
 
-void si3050_sw_reset(starphone_server *sps);
+void si3050_sw_reset(SPS_SYSTEM_INFO_T *sps);
 
-void si3050_sys_init(void);
+void Si3050_DAA_System_Init(void);
 
-void si3050_power_up_si3019(void);
-
-void si3050_pcm_dev_drv_init(starphone_server *sps);
+void si3050_pcm_dev_drv_init(SPS_SYSTEM_INFO_T *sps);
 
 void *XW_Pthread_ModemCtrlDeamon(void *args);
 

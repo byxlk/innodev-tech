@@ -6,6 +6,12 @@
 
 #include "include/xw_export.h"
 
+static SPS_SYSTEM_INFO_T gSystemInfo ;
+
+SPS_SYSTEM_INFO_T  *XW_Global_InitSystemInfo(void)
+{
+    return &gSystemInfo;
+}
 
 int main(int argc, char **argv) 
 {	
@@ -14,10 +20,11 @@ int main(int argc, char **argv)
     _DEBUG("Perper memory init ...");
     
     //启动各种系统应用
+    memset(&gSystemInfo, 0x0, sizeof(SPS_SYSTEM_INFO_T));
     XW_SysModuleBoot();
 
 	//等待终端退出指令
-	_DEBUG("system boot complete ,please char  q toexit system !");
+    _DEBUG("system boot complete ,please char  q toexit system !");
     while(1)
     {
         key = XW_Tools_GetTtyInputChar();/*获得终端输入的字符*/

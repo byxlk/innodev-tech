@@ -5,9 +5,12 @@
 #include "xw_config.h"
 
 
+
+SPS_SYSTEM_INFO_T  *XW_Global_InitSystemInfo(void);
+
+
 int XW_SysModuleBoot(void);
 void XW_SysModuleUnBoot(void);
-//DVR_SYSTEM_INFO_T  *XW_Global_InitSystemInfo(void);
 
 // Commmon Interface
 char XW_Tools_GetTtyInputChar(void);
