@@ -274,6 +274,277 @@ void Si3050_Power_Up_Si3019(void)
         gpio_spi_write(6, 0x00);
 }
 
+/*------------------------------------------------------------------------------*/
+/* FUNCTION:    si3050_hw_init                                                  */
+/*------------------------------------------------------------------------------*/
+/* DESCRIPTION:    Perform hardware initialization of TID analog interface.     */
+/*------------------------------------------------------------------------------*/
+
+bool Si3050_Hw_Init(unsigned short timeslot)
+{
+
+	unsigned char device_id;
+	//int i,j;
+
+	/* Initialize and power up DAA */
+	if(Si3050_Hw_Reset() == FALSE)
+	{
+		return FALSE;
+	}
+
+
+	device_id = gpio_spi_read(SI3050_REG_CHIP_A_REV);//reg11
+
+	if((device_id>>4) > 3)
+	{
+		device_id &=0xF;
+		//j=sprintf(str,"\nSI3050 dev id error %x on tcid %u\n",device_id,tcid);
+		//ser_Write(str,j);
+		return FALSE;
+	}
+
+
+	/* This is a simple method of verifying if the deivce is alive */
+	if(device_id == 0)
+	{
+		//j=sprintf(str,"\nDetected SI3050 revision %u and a %s on tcid %u\n", ((device_id)&0xF), line_device[(device_id>>4)&0xF],tcid);
+		//ser_Write(str,j);
+		return FALSE;
+	}
+
+	/* enable PCM and assign timeslot for PCM */
+
+	si3050_pcm_init(timeslot);
+
+	/* Enable intterupt */
+	gpio_spi_write(SI3050_REG_CONTROL2, 0x83); //0x87
+	//j=sprintf(str,"\nFXO_ProSLIC device %d initialized", tcid);
+	//ser_Write(str,j);
+
+	return TRUE;
+}
+
+/*******************************************************************************
+* FUNCTION:     si3050_hw_reset
+*
+********************************************************************************
+* DESCRIPTION:    Power up the device
+*
+*******************************************************************************/
+
+bool Si3050_Hw_Reset(void)
+{
+	unsigned char ac_termination_data;
+	unsigned char dc_termination_data;
+	unsigned char international_control1_data;
+	unsigned char daa_control5_data;
+	unsigned char loop_cnt = 0;
+	unsigned char data;
+	unsigned char interrupt_mask;
+	//char i,j;
+
+
+	/* UINT8 intterupt_mask; */
+	/* Enable link + power up line side device */
+	gpio_spi_write(SI3050_REG_DAA_CONTROL2, 0x00);
+
+	/* Read FTD */
+	data=gpio_spi_read(SI3050_REG_LINE_STATUS);//reg12
+	while((!(data & 0x40) | data==0xff)
+		&& (loop_cnt < SI3050_MAX_FTD_RETRY))
+	{
+		wait(200);
+		loop_cnt++;
+		data=gpio_spi_read(SI3050_REG_LINE_STATUS);
+	}
+	if(loop_cnt >= SI3050_MAX_FTD_RETRY)
+	{
+		//j=sprintf(str,"\nFailed to get FTD register sync\n");
+		//ser_Write(str,j);
+		return(FALSE);
+	}
+
+
+		ac_termination_data = 0x00;
+		dc_termination_data = 0xc0;
+		international_control1_data = 0x00;
+		daa_control5_data = 0x20;
+
+
+	/* Set AC termination */
+	gpio_spi_write(SI3050_REG_AC_TERMIATION_CONTROL, ac_termination_data);//reg30
+	/* Set DC termination */
+	gpio_spi_write(SI3050_REG_DC_TERMINATION_CONTROL, dc_termination_data);//reg26
+	/* Set International Control: set ring impedance, ring detection threshold, on-hook speed , enable/disable iir filter */
+	gpio_spi_write(SI3050_REG_INTERNATIONAL_CONTROL1, international_control1_data);//reg16 /* OHS IIRE RZ RT */
+	/* Set off-hook speed , enable full scale */
+	daa_control5_data |= 0x80 | 0x02;//0x80 | 0x02; /* Move the Pole of the built in filter from 5 Hz to 200 Hz this may affect voice quality */
+	gpio_spi_write(SI3050_REG_DAA_CONTROL5, daa_control5_data);//reg31 /* OHS IIRE RZ RT */
+
+	/* Enable Ring Validation */
+	/* fmin 10Hz */
+	/* fmax 83Hz */
+	/* ring confirmation count 150ms */
+	/* ring time out 640ms */
+	/* ring delay 0ms */
+	gpio_spi_write(SI3050_REG_RING_VALIDATION_CONTROL1, 0x16);//reg22 //0x56
+	gpio_spi_write(SI3050_REG_RING_VALIDATION_CONTROL2, 0x29);//reg23//0x2b
+	gpio_spi_write(SI3050_REG_RING_VALIDATION_CONTROL3, 0x99);//reg24
+
+	/* Set interrupt mask */
+	/* interrupt_mask = SI3050_RDT_INT | SI3050_ROV_INT | SI3050_FDT_INT | SI3050_BTD_INT | SI3050_DOD_INT |SI3050_LCSO_INT | SI3050_TGD_INT | SI3050_POL_INT; */
+	/* si3050_write_reg(SI3050_REG_INTERRUPT_MASK, interrupt_register, tcid); */
+	/* Clear intterupt register */
+	/* si3050_write_reg(SI3050_REG_INTERRUPT_SOURCE, 0x00, tcid); */
+
+	//si3050_write_reg(43 ,0x03, tcid);
+	//si3050_write_reg(44 ,0x07, tcid);
+
+	interrupt_mask = SI3050_RDT_INT | SI3050_ROV_INT | SI3050_FDT_INT | SI3050_BTD_INT | SI3050_DOD_INT |SI3050_LCSO_INT | SI3050_TGD_INT | SI3050_POL_INT;
+	interrupt_mask=0x80;
+	gpio_spi_write(SI3050_REG_INTERRUPT_MASK, interrupt_mask);
+	/* Clear intterupt register */
+	gpio_spi_write(SI3050_REG_INTERRUPT_SOURCE, 0x00);
+
+
+
+	/* Set international control registers */
+	gpio_spi_write(SI3050_REG_INTERNATIONAL_CONTROL2, 0x00); //reg17 /* RT2 OPE BTE ROV BTD */
+	gpio_spi_write(SI3050_REG_INTERNATIONAL_CONTROL3, 0x00); //reg18 /* RFWE */
+	gpio_spi_write(SI3050_REG_INTERNATIONAL_CONTROL4, 0x00); //reg19 /* OVL DOD OPE */
+
+	return(TRUE);
+}
+
+/*******************************************************************************
+* FUNCTION:     pcm_init
+*
+********************************************************************************
+* DESCRIPTION:    Perform hardware initialization of PCM interface.
+*
+*******************************************************************************/
+void Si3050_Pcm_Init(unsigned short timeslot)
+{
+    unsigned short  pcm_offset;
+    unsigned char   pcm_mode;
+
+
+    pcm_offset = (timeslot)*8;
+    pcm_mode = SI3050_PCM_ENABLE ;//| SI3050_PCM_TRI ;//| 1<<1;//PHCF
+
+	gpio_spi_write(SI3050_REG_PCM_TX_LOW, (pcm_offset & 0x0ff));
+    gpio_spi_write(SI3050_REG_PCM_TX_HIGH, (pcm_offset >> 8) & 0x0003);
+    gpio_spi_write(SI3050_REG_PCM_RX_LOW, pcm_offset & 0x0ff);
+    gpio_spi_write(SI3050_REG_PCM_RX_HIGH, (pcm_offset >> 8) & 0x0003);
+    gpio_spi_write(SI3050_REG_PCM_SPI_MODE_SELECT, pcm_mode);//reg33
+
+}
+
+
+
+
+/*******************************************************************************
+* FUNCTION:     si3050_set_hook
+*
+********************************************************************************
+* DESCRIPTION:    Toggle the hook switch
+*
+*******************************************************************************/
+void Si3050_Set_Hook(bool si3050_off_hook)
+{
+    unsigned char data = 0;
+    if(si3050_off_hook)
+    {
+        data = 0x1;
+	}
+	gpio_spi_write(SI3050_REG_DAA_CONTROL1, data);
+}
+
+/*******************************************************************************
+* FUNCTION:     si3050_hw_gain_control
+*
+********************************************************************************
+* DESCRIPTION:    Modify the DAA gain - note, not used for normal operation.
+*
+*******************************************************************************/
+void Si3050_Hw_Gain_Control(unsigned char gain_value_high, 
+							unsigned char gain_value_low, bool f_is_tx_gain)
+{
+	if(f_is_tx_gain)
+	{
+		gpio_spi_write(SI3050_REG_TX_GAIN_CONTROL2, gain_value_high);
+		gpio_spi_write(SI3050_REG_TX_GAIN_CONTROL3, gain_value_low);
+	}
+	else
+	{
+		gpio_spi_write(SI3050_REG_RX_GAIN_CONTROL2, gain_value_high);//r39
+		gpio_spi_write(SI3050_REG_RX_GAIN_CONTROL3, gain_value_low);//r41
+		/*
+		reg 39
+		7:5 Reserved Read returns zero.
+		4 RGA2 Receive Gain or Attenuation 2.
+		0 = Incrementing the RXG2[3:0] bits results in gaining up the receive path.
+		1 = Incrementing the RXG2[3:0] bits results in attenuating the receive path.
+		3:0 RXG2[3:0] Receive Gain 2.
+		Each bit increment represents 1 dB of gain or attenuation, up to a maximum of +12 dB and
+		?5 dB respectively.
+		For example:
+		RGA2 RXG2[3:0] Result
+		X 0000 0 dB gain or attenuation is applied to the receive path.
+		0 0001 1 dB gain is applied to the receive path.
+		0 :
+		0 11xx 12 dB gain is applied to the receive path.
+		1 0001 1 dB attenuation is applied to the receive path.
+		1 :
+		1 1111 15 dB attenuation is applied to the receive path.
+		*/
+
+		/*
+		reg 41
+				7:5 Reserved Read returns zero.
+				4 RGA3 Receive Gain or Attenuation 2.
+				0 = Incrementing the RXG3[3:0] bits results in gaining up the receive path.
+				1 = Incrementing the RXG3[3:0] bits results in attenuating the receive path.
+				3:0 RXG3[3:0] Receive Gain 3.
+				Each bit increment represents 0.1 dB of gain or attenuation, up to a maximum of 1.5 dB.
+				For example:
+				RGA3 RXG3[3:0] Result
+				X 0000 0 dB gain or attenuation is applied to the receive path.
+				0 0001 0.1 dB gain is applied to the receive path.
+				0 :
+				0 1111 1.5 dB gain is applied to the receive path.
+				1 0001 0.1 dB attenuation is applied to the receive path.
+				1 :
+				1 1111 1.5 dB attenuation is applied to the receive path.
+		*/
+	}
+}
+
+
+/*******************************************************************************
+* FUNCTION:     si3050_set_lowpwr_path
+*
+********************************************************************************
+* DESCRIPTION:  set data path on onhook line monitor state to transfer CID
+*
+*******************************************************************************/
+void Si3050_Set_Lowpwr_Path(void)
+{
+	gpio_spi_write(SI3050_REG_DAA_CONTROL1, 0x08);
+}
+
+/*******************************************************************************
+* FUNCTION:     si3050_clear_lowpwr_path
+*
+********************************************************************************
+* DESCRIPTION:  disable low power data path on onhook state
+*
+*******************************************************************************/
+void Si3050_Clear_Lowpwr_Path(void)
+{
+	   gpio_spi_write(SI3050_REG_DAA_CONTROL1, 0x00);
+}
+
 void Si3050_DAA_System_Init(void)
 {
     //unsigned char regCfg = 0;
