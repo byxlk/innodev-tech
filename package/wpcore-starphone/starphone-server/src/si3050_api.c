@@ -274,56 +274,6 @@ void Si3050_Power_Up_Si3019(void)
         gpio_spi_write(6, 0x00);
 }
 
-/*------------------------------------------------------------------------------*/
-/* FUNCTION:    si3050_hw_init                                                  */
-/*------------------------------------------------------------------------------*/
-/* DESCRIPTION:    Perform hardware initialization of TID analog interface.     */
-/*------------------------------------------------------------------------------*/
-
-bool Si3050_Hw_Init(unsigned short timeslot)
-{
-
-	unsigned char device_id;
-	//int i,j;
-
-	/* Initialize and power up DAA */
-	if(Si3050_Hw_Reset() == FALSE)
-	{
-		return FALSE;
-	}
-
-
-	device_id = gpio_spi_read(SI3050_REG_CHIP_A_REV);//reg11
-
-	if((device_id>>4) > 3)
-	{
-		device_id &=0xF;
-		//j=sprintf(str,"\nSI3050 dev id error %x on tcid %u\n",device_id,tcid);
-		//ser_Write(str,j);
-		return FALSE;
-	}
-
-
-	/* This is a simple method of verifying if the deivce is alive */
-	if(device_id == 0)
-	{
-		//j=sprintf(str,"\nDetected SI3050 revision %u and a %s on tcid %u\n", ((device_id)&0xF), line_device[(device_id>>4)&0xF],tcid);
-		//ser_Write(str,j);
-		return FALSE;
-	}
-
-	/* enable PCM and assign timeslot for PCM */
-
-	si3050_pcm_init(timeslot);
-
-	/* Enable intterupt */
-	gpio_spi_write(SI3050_REG_CONTROL2, 0x83); //0x87
-	//j=sprintf(str,"\nFXO_ProSLIC device %d initialized", tcid);
-	//ser_Write(str,j);
-
-	return TRUE;
-}
-
 /*******************************************************************************
 * FUNCTION:     si3050_hw_reset
 *
@@ -353,7 +303,7 @@ bool Si3050_Hw_Reset(void)
 	while((!(data & 0x40) | data==0xff)
 		&& (loop_cnt < SI3050_MAX_FTD_RETRY))
 	{
-		wait(200);
+		usleep(2*1000);
 		loop_cnt++;
 		data=gpio_spi_read(SI3050_REG_LINE_STATUS);
 	}
@@ -361,7 +311,7 @@ bool Si3050_Hw_Reset(void)
 	{
 		//j=sprintf(str,"\nFailed to get FTD register sync\n");
 		//ser_Write(str,j);
-		return(FALSE);
+		return 0;
 	}
 
 
@@ -400,7 +350,8 @@ bool Si3050_Hw_Reset(void)
 	//si3050_write_reg(43 ,0x03, tcid);
 	//si3050_write_reg(44 ,0x07, tcid);
 
-	interrupt_mask = SI3050_RDT_INT | SI3050_ROV_INT | SI3050_FDT_INT | SI3050_BTD_INT | SI3050_DOD_INT |SI3050_LCSO_INT | SI3050_TGD_INT | SI3050_POL_INT;
+	interrupt_mask = SI3050_RDT_INT | SI3050_ROV_INT | SI3050_FDT_INT | \
+                         SI3050_BTD_INT | SI3050_DOD_INT |SI3050_LCSO_INT | SI3050_TGD_INT | SI3050_POL_INT;
 	interrupt_mask=0x80;
 	gpio_spi_write(SI3050_REG_INTERRUPT_MASK, interrupt_mask);
 	/* Clear intterupt register */
@@ -413,7 +364,7 @@ bool Si3050_Hw_Reset(void)
 	gpio_spi_write(SI3050_REG_INTERNATIONAL_CONTROL3, 0x00); //reg18 /* RFWE */
 	gpio_spi_write(SI3050_REG_INTERNATIONAL_CONTROL4, 0x00); //reg19 /* OVL DOD OPE */
 
-	return(TRUE);
+	return 1;
 }
 
 /*******************************************************************************
@@ -432,12 +383,64 @@ void Si3050_Pcm_Init(unsigned short timeslot)
     pcm_offset = (timeslot)*8;
     pcm_mode = SI3050_PCM_ENABLE ;//| SI3050_PCM_TRI ;//| 1<<1;//PHCF
 
-	gpio_spi_write(SI3050_REG_PCM_TX_LOW, (pcm_offset & 0x0ff));
+    gpio_spi_write(SI3050_REG_PCM_TX_LOW, (pcm_offset & 0x0ff));
     gpio_spi_write(SI3050_REG_PCM_TX_HIGH, (pcm_offset >> 8) & 0x0003);
     gpio_spi_write(SI3050_REG_PCM_RX_LOW, pcm_offset & 0x0ff);
     gpio_spi_write(SI3050_REG_PCM_RX_HIGH, (pcm_offset >> 8) & 0x0003);
     gpio_spi_write(SI3050_REG_PCM_SPI_MODE_SELECT, pcm_mode);//reg33
 
+}
+
+
+
+/*------------------------------------------------------------------------------*/
+/* FUNCTION:    si3050_hw_init                                                  */
+/*------------------------------------------------------------------------------*/
+/* DESCRIPTION:    Perform hardware initialization of TID analog interface.     */
+/*------------------------------------------------------------------------------*/
+
+bool Si3050_Hw_Init(unsigned short timeslot)
+{
+
+	unsigned char device_id;
+	//int i,j;
+
+	/* Initialize and power up DAA */
+	if(Si3050_Hw_Reset() == HI_FALSE)
+	{
+		return HI_FALSE;
+	}
+
+
+	device_id = gpio_spi_read(SI3050_REG_CHIP_A_REV);//reg11
+
+	if((device_id>>4) > 3)
+	{
+		device_id &=0xF;
+		//j=sprintf(str,"\nSI3050 dev id error %x on tcid %u\n",device_id,tcid);
+		//ser_Write(str,j);
+		return HI_FALSE;
+	}
+
+
+	/* This is a simple method of verifying if the deivce is alive */
+	if(device_id == 0)
+	{
+		//j=sprintf(str,"\nDetected SI3050 revision %u and a %s on tcid %u\n", ((device_id)&0xF), line_device[(device_id>>4)&0xF],tcid);
+		//ser_Write(str,j);
+		return HI_FALSE;
+	}
+
+	/* enable PCM and assign timeslot for PCM */
+
+	Si3050_Pcm_Init(timeslot);
+
+	/* Enable intterupt */
+	gpio_spi_write(SI3050_REG_CONTROL2, 0x83); //0x87
+	//j=sprintf(str,"\nFXO_ProSLIC device %d initialized", tcid);
+	//ser_Write(str,j);
+
+	return HI_TRUE;
 }
 
 
@@ -530,7 +533,7 @@ void Si3050_Hw_Gain_Control(unsigned char gain_value_high,
 *******************************************************************************/
 void Si3050_Set_Lowpwr_Path(void)
 {
-	gpio_spi_write(SI3050_REG_DAA_CONTROL1, 0x08);
+    gpio_spi_write(SI3050_REG_DAA_CONTROL1, 0x08);
 }
 
 /*******************************************************************************
@@ -542,7 +545,7 @@ void Si3050_Set_Lowpwr_Path(void)
 *******************************************************************************/
 void Si3050_Clear_Lowpwr_Path(void)
 {
-	   gpio_spi_write(SI3050_REG_DAA_CONTROL1, 0x00);
+    gpio_spi_write(SI3050_REG_DAA_CONTROL1, 0x00);
 }
 
 void Si3050_DAA_System_Init(void)

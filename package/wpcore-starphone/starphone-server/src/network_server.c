@@ -56,7 +56,6 @@ int _send(int connfd, void* buf, int size)
 }
 
 void *XW_Pthread_Udp_Broadcast(void *args)
-
 {
         SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
 	int sock;
