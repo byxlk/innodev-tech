@@ -9,7 +9,7 @@
 
 #include "include/xw_export.h"
 
-#define MAX 30
+#define MAX 15
 
 int busy = 0; // 是否通話中
 
@@ -58,44 +58,42 @@ int _send(int connfd, void* buf, int size)
 void *XW_Pthread_Udp_Broadcast(void *args)
 {
         SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
-	int sock;
-        int broadcast = 1;
-	char *ip = "255.255.255.255";
-	char *msg = "Hello 你好 World!";
-	size_t nBytes = 0;
-    
-	struct sockaddr_in si;
 
-        //AF_INET: using tcp/ip & ipv4
-        //SOCK_DGRAM:
-        //IPPROTO_UDP: using udp transfer data
+        size_t nSendToRet = 0; 
+        char *Sock_Msg = "Hello 你好 World!";	
+
+        int sock = -1;
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if(sock < 0)
 	{
 		perror("socket : ");
 		pthread_exit(NULL);
 	}
-	
-	if(setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast)) != 0 )
+
+        const int broadcast = 1;
+	if(setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (char *)&broadcast, sizeof(broadcast)) != 0 )
 	{
 		perror("setsockopt : ");
 		close(sock);
 		pthread_exit(NULL);
 	}
+
+        char *broadcast_ip = "255.255.255.255";	
+        struct sockaddr_in addrto;
+        bzero(&addrto, sizeof(struct sockaddr_in)); 
+	addrto.sin_family = AF_INET;
+	addrto.sin_port   = htons(4444);
+	addrto.sin_addr.s_addr = inet_addr(broadcast_ip);           
 	
-	si.sin_family = AF_INET;
-	si.sin_port   = htons( 4444 );
-	si.sin_addr.s_addr = inet_addr(ip);
-	//inet_aton( ip, &si.sin_addr.s_addr );
-	
-        printf("Sent msg: %s, socket %d to %s\n", msg, sock, ip);
+        _DEBUG("Sent msg: %s, socket %d to %s\n", Sock_Msg, sock, broadcast_ip);
+        
 	while(1) {
 		/* send data */
-		nBytes = sendto(sock, msg, strlen(msg), 0, (struct sockaddr*) &si, sizeof(si));             //
-
-                if(nBytes < 0)
+		nSendToRet = sendto(sock, Sock_Msg, strlen(Sock_Msg), 0, (struct sockaddr*) &addrto, sizeof(addrto));             //
+                if(nSendToRet < 0)
                 {
-                        printf("Error: socket %d send msg %s faild\n",sock, msg);
+                        _ERROR("Error: socket %d send msg %s faild\n",sock, Sock_Msg);
+                        sleep(5);
                 }
 		//printf("Sent msg: %s, %d bytes with socket %d to %s\n", msg, nBytes, sock, ip);
 		
@@ -147,41 +145,48 @@ void *XW_Pthread_ClientConnectManage(void *args)
             exit(-1);
         }
         
-        printf("Accepting connections...\n");
+        _DEBUG("Accepting connections...\n");
         
         
-        for(i=0;i<MAX;i++) {
+        for(i=0;i<MAX;i++) 
+        {
             clients[i] = (thread_arg*)malloc(sizeof(thread_arg));
             clients[i]->connfd = 0;
             clients[i]->id = 0;
             clients[i]->peer = NULL;
-            printf("initial clients status\n");
+            _DEBUG("initial clients(%d) status\n",i);
         } 
         
-        while(1) {
+        while(1)
+        {
             addr_len = sizeof(caddr);
-            connfd = accept(listenfd, (struct sockaddr*)(&caddr), &addr_len);
-            printf("New connection: socket %d, ip:%s, port:%d\n", connfd,
+            connfd = accept(listenfd, (struct sockaddr*)&caddr, &addr_len);
+            
+            _DEBUG("New connection: socket %d, ip:%s, port:%d\n", connfd,
                    inet_ntoa(caddr.sin_addr), ntohs(caddr.sin_port));
             
-            for(i=0;i<MAX;i++) {
-                printf("find free client slot: %d\n", i);
-                if(clients[i]->connfd == 0) {
+            for(i=0;i<MAX;i++)
+           {
+                _DEBUG("find free client slot: %d\n", i);
+                if(clients[i]->connfd == 0) 
+               {
                     break;
                 }
             }
-            if(i==MAX) {
-                printf("Max client reached!\n");
+            if(i==MAX) 
+            {
+                _DEBUG("Max client reached!\n");
                 char *msg = "Max client reached. Bye~\n";
                 _send(connfd, msg, strlen(msg));
                 close(connfd);
                 continue;
             }
+            
             //arg = malloc(sizeof(thread_arg));
             clients[i]->connfd = connfd;
             clients[i]->caddr = caddr;
             clients[i]->id = i;
-            printf("client id =%d\n",clients[i]->id);
+            _DEBUG("Connected Client Id =%d\n",clients[i]->id);
             //memcpy(&arg->caddr, &caddr, sizeof(caddr));
 //            if(pthread_create(&id, NULL, (void*)thread, clients[i])) {
 //                perror("pthread_create");
@@ -215,7 +220,7 @@ void *XW_Pthread_ClientApplicationManage(void *args)
 			break;
 		} else {
 			buf[n] = 0;
-			printf("recv: ip=%s, length=%d, msg=%s", inet_ntoa(arg->caddr.sin_addr), n, buf);
+			_DEBUG("recv: ip=%s, length=%d, msg=%s", inet_ntoa(arg->caddr.sin_addr), n, buf);
 		}
 		
 		// strip \r\n
