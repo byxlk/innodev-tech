@@ -31,8 +31,9 @@ OBJS = $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
 
 
 $(TARGET) : $(OBJS)
-	 $(CC) $(SOURCES) -o $(TARGET) $(LDFLAGS) -DMAIN -DNO_MODEM
-	 chmod a+x $(TARGET)
+	$(CC) $(SOURCES) -o $(TARGET) $(LDFLAGS) -DMAIN -DNO_MODEM
+	gcc $(SOURCES) -o sprout_phone -lm -pthread
+	chmod a+x $(TARGET)
 
 clean:
 	rm *.o starphone-server

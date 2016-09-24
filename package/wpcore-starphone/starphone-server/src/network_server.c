@@ -5,6 +5,8 @@
 #include <netinet/in.h>//for sockaddr_in
 #include <arpa/inet.h>//for socket
 #include <pthread.h>
+#include <net/if.h>
+
 //#include <sys/socket.h>
 
 #include "include/xw_export.h"
@@ -55,13 +57,88 @@ int _send(int connfd, void* buf, int size)
         return n;
 }
 
+int GetLocalHostBroadcastIP(char *eth, char *ipaddr)
+{   
+        int sockfd = -1;   
+        struct ifreq ifr;
+        struct sockaddr_in *addr;  
+        char * address;
+
+        if(strlen(eth) >= IFNAMSIZ)
+        {
+                _ERROR("device name is error. Length(%d) >= %d\n",strlen(eth), IFNAMSIZ); 
+                return (-1);
+        }
+        strcpy( ifr.ifr_name, eth);
+        
+        sockfd = socket(AF_INET,SOCK_DGRAM,0);
+        if(sockfd < 0)
+        {
+                _ERROR("create socket handler faild ");
+                return -1;
+        }
+        
+        //get inet addr              
+        if(ioctl(sockfd, SIOCGIFADDR, &ifr) == -1)
+        {
+                _ERROR("ioctl  SIOCGIFADDR error.\n");
+                return (-1);
+        }        
+        addr = (struct sockaddr_in *)&(ifr.ifr_addr);
+        address = inet_ntoa(addr->sin_addr);
+        _DEBUG("inet addr: %s",address);
+
+        //get Mask  SIOCGIFBRDADDR        
+        if( ioctl( sockfd, SIOCGIFNETMASK, &ifr) == -1)
+        {
+                _ERROR("ioctl SIOCGIFNETMASK error.\n");
+                return (-1);
+         }        
+        addr = (struct sockaddr_in *)&ifr.ifr_addr;
+        address = inet_ntoa(addr->sin_addr);
+        _DEBUG("Mask: %s",address);
+
+        //get Broadcast address          
+        if( ioctl( sockfd, SIOCGIFBRDADDR, &ifr) == -1)
+        {
+                _ERROR("ioctl SIOCGIFBRDADDR error.\n");
+                return (-1);
+         }        
+        addr = (struct sockaddr_in *)&ifr.ifr_addr;
+        address = inet_ntoa(addr->sin_addr);
+        _DEBUG("Broadcast: %s",address);
+        sprintf(ipaddr, "%s",address);
+        
+        //get HWaddr 
+        u_int8_t hd[6];        
+        if(ioctl(sockfd, SIOCGIFHWADDR, &ifr) == -1)
+        {
+                _ERROR("hwaddr SIOCGIFHWADDR error.\n");
+                return (-1);
+        }
+        memcpy( hd, ifr.ifr_hwaddr.sa_data, sizeof(hd));        
+        _DEBUG("HWaddr: %02X:%02X:%02X:%02X:%02X:%02X", 
+                         hd[0], hd[1], hd[2], hd[3], hd[4], hd[5]);
+
+        return 0;
+}
+
 void *XW_Pthread_Udp_Broadcast(void *args)
 {
         SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
 
         size_t nSendToRet = 0; 
+        char broadcast_ip[16] ={'\0'}; 
         char *Sock_Msg = "Hello 你好 World!";	
 
+        memset(broadcast_ip, '\0', sizeof(broadcast_ip));
+        GetLocalHostBroadcastIP(BRIDGE_NW_CARD,broadcast_ip);
+        if(broadcast_ip == NULL)
+        {
+                memcpy(broadcast_ip,"255.255.255.255",15);
+                _ERROR("get broadcast ip address faild, using default value");
+        }
+        
         int sock = -1;
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if(sock < 0)
@@ -77,14 +154,13 @@ void *XW_Pthread_Udp_Broadcast(void *args)
 		close(sock);
 		pthread_exit(NULL);
 	}
-
-        char *broadcast_ip = "255.255.255.255";	
+        	
         struct sockaddr_in addrto;
         bzero(&addrto, sizeof(struct sockaddr_in)); 
 	addrto.sin_family = AF_INET;
 	addrto.sin_port   = htons(4444);
-	addrto.sin_addr.s_addr = inet_addr(broadcast_ip);           
-	
+	addrto.sin_addr.s_addr = inet_addr(broadcast_ip);       //INADDR_BROADCAST    
+	//addrto.sin_addr.s_addr = htonl(INADDR_BROADCAST);
         _DEBUG("Sent msg: %s, socket %d to %s\n", Sock_Msg, sock, broadcast_ip);
         
 	while(1) {
@@ -154,7 +230,7 @@ void *XW_Pthread_ClientConnectManage(void *args)
             clients[i]->connfd = 0;
             clients[i]->id = 0;
             clients[i]->peer = NULL;
-            _DEBUG("initial clients(%d) status\n",i);
+            _DEBUG("initial clients(%d) status",i);
         } 
         
         while(1)
