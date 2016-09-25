@@ -176,14 +176,12 @@ bool wait)
 
     pthread_mutex_lock(&managePthread.g_pthread_mutex[thread_num]);
     if(wait == true)
-        pthread_cond_wait(&managePthread.g_pthread_cond[thread_num], &
-managePthread.g_pthread_mutex[thread_num]);
+        pthread_cond_wait(&managePthread.g_pthread_cond[thread_num], &managePthread.g_pthread_mutex[thread_num]);
 
     if(managePthread.g_pthread_info[thread_num] == WRITE_FLAG)
     {
         managePthread.g_pthread_info[thread_num] = READ_FLAG;
-        memcpy((PTHREAD_BUF *)rbuf, (PTHREAD_BUF *)&managePthread.
-g_pthread_buf[thread_num], sizeof(PTHREAD_BUF));
+        memcpy((PTHREAD_BUF *)rbuf, (PTHREAD_BUF *)&managePthread.g_pthread_buf[thread_num], sizeof(PTHREAD_BUF));
         b_valid = true;
     }
     pthread_mutex_unlock(&managePthread.g_pthread_mutex[thread_num]);

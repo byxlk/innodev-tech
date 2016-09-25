@@ -76,9 +76,9 @@ int XW_SysModuleBoot(void)
     ManagePthread_ClientApplicationManage();/*Client任务处理线程*/
     ManagePthread_ModemCtrlDeamon();/* Modem  处理线程*/
     
-    ManagePthread_SDCardManage();/*硬盘管理线程*/
-    ManagePthread_UsbDeviceHotplug();/*USB热插拔检测*/
-    XW_Update_CreateUpdatePthread();/* 升级处理线程 */
+    //ManagePthread_SDCardManage();/*硬盘管理线程*/
+    //ManagePthread_UsbDeviceHotplug();/*USB热插拔检测*/
+    //XW_Update_CreateUpdatePthread();/* 升级处理线程 */
 
     return 0;
 }

@@ -266,6 +266,7 @@ typedef struct __PTHREAD_BUF__
     U16_T       m_channel;
     U32_T       m_time;
     U8_T        m_buffer[80];
+    void *       m_args;
 } PTHREAD_BUF;
 
 typedef struct

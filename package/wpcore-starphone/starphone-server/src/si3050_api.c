@@ -569,13 +569,38 @@ void Si3050_DAA_System_Init(void)
 
 void *XW_Pthread_ModemCtrlDeamon(void *args)
 {
+        MspSendCmd_t cmdData;	//消息队列传输结构
+	PTHREAD_BUF  signal;
+	STATE_PREVIEW *p;
+        PTHREAD_BUF send_buf;
         SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
-
-        while(1)
+        
+        p = (STATE_PREVIEW *)XW_ManagePthread_GetPthreadState(PTHREAD_MODEM_CTRL_ID, 0);
+        p->power = PTHREAD_POWER_ON;
+        p->state = ALIVE;
+        
+        while(p->power == PTHREAD_POWER_ON)
         {
+                XW_ManagePthread_ReadSignal(&signal, PTHREAD_MODEM_CTRL_ID, HI_FALSE);
+		if (signal.start_id == PTHREAD_MAIN_ID && signal.m_signal == EXIT)
+                {      
+                        p->state = EXIT;
+                        break;
+                }    
+
+                //TODO:
+                
 
                 sleep(10);
         }
+
+        p->state = EXIT;
+        if(XW_ManagePthread_SendSignal(&signal, PTHREAD_MODEM_CTRL_ID) == false)
+        {
+                _ERROR("PTHREAD_MODEM_CTRL_ID[%d] error !'\n", PTHREAD_MODEM_CTRL_ID);
+        }
+        
+	_DEBUG("modem control thread exit !");
 
         return 0;
 } 

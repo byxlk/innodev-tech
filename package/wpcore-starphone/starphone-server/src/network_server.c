@@ -124,12 +124,20 @@ int GetLocalHostBroadcastIP(char *eth, char *ipaddr)
 }
 
 void *XW_Pthread_Udp_Broadcast(void *args)
-{
-        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
-
+{  
         size_t nSendToRet = 0; 
         char broadcast_ip[16] ={'\0'}; 
         char *Sock_Msg = "Hello 浣犲ソ World!";	
+
+        MspSendCmd_t cmdData;	//消息队列传输结构
+	PTHREAD_BUF  signal;
+	STATE_PREVIEW *p;
+        PTHREAD_BUF send_buf;
+        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
+        
+        p = (STATE_PREVIEW *)XW_ManagePthread_GetPthreadState(PTHREAD_UDP_BROADCAST_ID, 0);
+        p->power = PTHREAD_POWER_ON;
+        p->state = ALIVE;
 
         memset(broadcast_ip, '\0', sizeof(broadcast_ip));
         GetLocalHostBroadcastIP(BRIDGE_NW_CARD,broadcast_ip);
@@ -163,7 +171,15 @@ void *XW_Pthread_Udp_Broadcast(void *args)
 	//addrto.sin_addr.s_addr = htonl(INADDR_BROADCAST);
         _DEBUG("Sent msg: %s, socket %d to %s\n", Sock_Msg, sock, broadcast_ip);
         
-	while(1) {
+	while(p->power == PTHREAD_POWER_ON) 
+        {
+                XW_ManagePthread_ReadSignal(&signal, PTHREAD_UDP_BROADCAST_ID, HI_FALSE);
+		if (signal.start_id == PTHREAD_MAIN_ID && signal.m_signal == EXIT)
+                {      
+                        p->state = EXIT;
+                        break;
+                }    
+        
 		/* send data */
 		nSendToRet = sendto(sock, Sock_Msg, strlen(Sock_Msg), 0, (struct sockaddr*) &addrto, sizeof(addrto));             //
                 if(nSendToRet < 0)
@@ -175,23 +191,38 @@ void *XW_Pthread_Udp_Broadcast(void *args)
 		
 		sleep(1);
 	}
+
+        p->state = EXIT;
+        if(XW_ManagePthread_SendSignal(&signal, PTHREAD_UDP_BROADCAST_ID) == false)
+        {
+                _ERROR("PTHREAD_UDP_BROADCAST_ID[%d] error !'\n", PTHREAD_UDP_BROADCAST_ID);
+        }
+        
+	_DEBUG("Udp Broadcast thread exit !");
 	
 }
 
 
 void *XW_Pthread_ClientConnectManage(void *args)
-{
-        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
+{        
         int i;
         int flag = 1;
         int listenfd;
         int connfd;
-        int addr_len;
-        
-        //pthread_t id;
-        //pthread_t id2;
+        int addr_len;        
+
         struct sockaddr_in saddr;
         struct sockaddr_in caddr;
+
+        MspSendCmd_t cmdData;	//消息队列传输结构
+	PTHREAD_BUF  signal;
+	STATE_PREVIEW *p;
+        PTHREAD_BUF send_buf;
+        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
+        
+        p = (STATE_PREVIEW *)XW_ManagePthread_GetPthreadState(PTHREAD_CLIENT_CONNECT_ID, 0);
+        p->power = PTHREAD_POWER_ON;
+        p->state = ALIVE;
         
         listenfd = socket(AF_INET, SOCK_STREAM, 0);
         if( listenfd < 0) 
@@ -233,61 +264,107 @@ void *XW_Pthread_ClientConnectManage(void *args)
             _DEBUG("initial clients(%d) status",i);
         } 
         
-        while(1)
+        while(p->power == PTHREAD_POWER_ON)
         {
-            addr_len = sizeof(caddr);
-            connfd = accept(listenfd, (struct sockaddr*)&caddr, &addr_len);
-            
-            _DEBUG("New connection: socket %d, ip:%s, port:%d\n", connfd,
-                   inet_ntoa(caddr.sin_addr), ntohs(caddr.sin_port));
-            
-            for(i=0;i<MAX;i++)
-           {
-                _DEBUG("find free client slot: %d\n", i);
-                if(clients[i]->connfd == 0) 
+                XW_ManagePthread_ReadSignal(&signal, PTHREAD_CLIENT_CONNECT_ID, HI_FALSE);
+		if (signal.start_id == PTHREAD_MAIN_ID && signal.m_signal == EXIT)
+                {      
+                        p->state = EXIT;
+                        break;
+                }    
+
+                //TODO:
+                addr_len = sizeof(caddr);
+                connfd = accept(listenfd, (struct sockaddr*)&caddr, &addr_len);
+                
+                _DEBUG("New connection: socket %d, ip:%s, port:%d\n", connfd,
+                       inet_ntoa(caddr.sin_addr), ntohs(caddr.sin_port));
+                
+                for(i=0;i<MAX;i++)
                {
-                    break;
+                    _DEBUG("find free client slot: %d\n", i);
+                    if(clients[i]->connfd == 0) 
+                   {
+                        break;
+                    }
                 }
-            }
-            if(i==MAX) 
-            {
-                _DEBUG("Max client reached!\n");
-                char *msg = "Max client reached. Bye~\n";
-                _send(connfd, msg, strlen(msg));
-                close(connfd);
-                continue;
-            }
-            
-            //arg = malloc(sizeof(thread_arg));
-            clients[i]->connfd = connfd;
-            clients[i]->caddr = caddr;
-            clients[i]->id = i;
-            _DEBUG("Connected Client Id =%d\n",clients[i]->id);
-            //memcpy(&arg->caddr, &caddr, sizeof(caddr));
-//            if(pthread_create(&id, NULL, (void*)thread, clients[i])) {
-//                perror("pthread_create");
-//                exit(-1);
-//            }
-//            printf("Creating new thread %u\n", (int)id);
+                if(i==MAX) 
+                {
+                    _DEBUG("Max client reached!\n");
+                    char *msg = "Max client reached. Bye~\n";
+                    _send(connfd, msg, strlen(msg));
+                    close(connfd);
+                    continue;
+                }
+                
+                //arg = malloc(sizeof(thread_arg));
+                clients[i]->connfd = connfd;
+                clients[i]->caddr = caddr;
+                clients[i]->id = i;
+                _DEBUG("Connected Client Id =%d\n",clients[i]->id);
+                //memcpy(&arg->caddr, &caddr, sizeof(caddr));
+
+                send_buf.start_id = PTHREAD_CLIENT_CONNECT_ID;
+                send_buf.m_value = i;
+                send_buf.m_args = clients[i];
+                XW_ManagePthread_SendSignal(&send_buf, PTHREAD_CLIENT_CONNECT_ID);
+		_DEBUG("Send message PTHREAD_CLIENT_CONNECT_ID to PTHREAD_CLIENT_MANAGE_ID ok !");
         }
-    
+        
         close(listenfd);
-        return 0;
+
+        p->state = EXIT;
+        if(XW_ManagePthread_SendSignal(&signal, PTHREAD_CLIENT_CONNECT_ID) == false)
+        {
+               _ERROR("PTHREAD_CLIENT_CONNECT_ID[%d] error !'\n", PTHREAD_CLIENT_CONNECT_ID);
+        }
+        
+	_DEBUG("Client Connected thread exit !");
+            
+            return 0;
     }
 
     
 void *XW_Pthread_ClientApplicationManage(void *args)
 {
-        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
+        int i;
+        int n;
         char buf[100];
-	//thread_arg arg = *(thread_arg*)t_arg;
-	thread_arg *arg = (thread_arg*)args;
-	int i, n;
-	
+	//thread_arg *arg;
+
+        MspSendCmd_t cmdData;	//消息队列传输结构
+	PTHREAD_BUF  signal;
+	STATE_PREVIEW *p;
+        PTHREAD_BUF send_buf;
+        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
+        
+        p = (STATE_PREVIEW *)XW_ManagePthread_GetPthreadState(PTHREAD_CLIENT_MANAGE_ID, 0);
+        p->power = PTHREAD_POWER_ON;
+        p->state = ALIVE;
+
+        _DEBUG("wait read client data");
+        XW_ManagePthread_ReadSignal(&send_buf, PTHREAD_CLIENT_MANAGE_ID, HI_TRUE);
+        
+        thread_arg *arg = (thread_arg*)(send_buf.m_args);
+        if(arg == NULL)
+        {
+                _ERROR("client[i] address transfer faild");
+        }
+        
 	sprintf(buf, "Hello:%d\n", arg->id); // 鍛婄煡 client 浠栫殑鍏х窔铏熺⒓
 	_send(arg->connfd, buf, strlen(buf));
-	
-	while(1) {
+	_DEBUG("send buf data to socket");
+    
+	while(p->power == PTHREAD_POWER_ON)
+        {
+                XW_ManagePthread_ReadSignal(&signal, PTHREAD_CLIENT_MANAGE_ID, HI_FALSE);
+		if (signal.start_id == PTHREAD_MAIN_ID && signal.m_signal == EXIT)
+                {      
+                        p->state = EXIT;
+                        break;
+                }    
+
+                //TODO:
 		n = _recv(arg->connfd, buf, sizeof(buf));
 		//printf("recv: n=%d\n", n);
 		if(n==0) {
@@ -318,6 +395,14 @@ void *XW_Pthread_ClientApplicationManage(void *args)
 	}
 	close(arg->connfd);
 	arg->connfd = 0;
+
+        p->state = EXIT;
+        if(XW_ManagePthread_SendSignal(&signal, PTHREAD_CLIENT_MANAGE_ID) == false)
+        {
+               _ERROR("PTHREAD_CLIENT_MANAGE_ID[%d] error !'\n", PTHREAD_CLIENT_MANAGE_ID);
+        }
+        
+	_DEBUG("Client Connected thread exit !");
 
         return 0;
 }
