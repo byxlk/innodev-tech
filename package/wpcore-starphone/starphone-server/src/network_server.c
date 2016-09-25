@@ -307,7 +307,7 @@ void *XW_Pthread_ClientConnectManage(void *args)
                 send_buf.start_id = PTHREAD_CLIENT_CONNECT_ID;
                 send_buf.m_value = i;
                 send_buf.m_args = clients[i];
-                XW_ManagePthread_SendSignal(&send_buf, PTHREAD_CLIENT_CONNECT_ID);
+                XW_ManagePthread_SendSignal(&send_buf, PTHREAD_CLIENT_MANAGE_ID);
 		_DEBUG("Send message PTHREAD_CLIENT_CONNECT_ID to PTHREAD_CLIENT_MANAGE_ID ok !");
         }
         
@@ -328,9 +328,8 @@ void *XW_Pthread_ClientConnectManage(void *args)
 void *XW_Pthread_ClientApplicationManage(void *args)
 {
         int i;
-        int n;
-        char buf[100];
-	//thread_arg *arg;
+        int nRecv_Byte = 0;                         //Recvive byte counter
+        char sock_recv_buf[100] = {'\0'};
 
         MspSendCmd_t cmdData;	//消息队列传输结构
 	PTHREAD_BUF  signal;
@@ -342,18 +341,17 @@ void *XW_Pthread_ClientApplicationManage(void *args)
         p->power = PTHREAD_POWER_ON;
         p->state = ALIVE;
 
-        _DEBUG("wait read client data");
-        XW_ManagePthread_ReadSignal(&send_buf, PTHREAD_CLIENT_MANAGE_ID, HI_TRUE);
-        
-        thread_arg *arg = (thread_arg*)(send_buf.m_args);
-        if(arg == NULL)
+        //_DEBUG("wait read client data...");
+        XW_ManagePthread_ReadSignal(&send_buf, PTHREAD_CLIENT_MANAGE_ID, HI_TRUE);        
+        thread_arg *Client_ThreadArg = (thread_arg*)(send_buf.m_args);
+        if(Client_ThreadArg == NULL)
         {
                 _ERROR("client[i] address transfer faild");
         }
         
-	sprintf(buf, "Hello:%d\n", arg->id); // 鍛婄煡 client 浠栫殑鍏х窔铏熺⒓
-	_send(arg->connfd, buf, strlen(buf));
-	_DEBUG("send buf data to socket");
+	sprintf(sock_recv_buf, "Hello:%d\n", Client_ThreadArg->id); // 鍛婄煡 client 浠栫殑鍏х窔铏熺⒓
+	_send(Client_ThreadArg->connfd, sock_recv_buf, strlen(sock_recv_buf));
+	//_DEBUG("send buf data to socket");
     
 	while(p->power == PTHREAD_POWER_ON)
         {
@@ -364,22 +362,27 @@ void *XW_Pthread_ClientApplicationManage(void *args)
                         break;
                 }    
 
-                //TODO:
-		n = _recv(arg->connfd, buf, sizeof(buf));
-		//printf("recv: n=%d\n", n);
-		if(n==0) {
-			printf("connection %d closed.\n", arg->connfd);
+                //TODO: recv data from sock
+		nRecv_Byte = _recv(Client_ThreadArg->connfd, sock_recv_buf, sizeof(sock_recv_buf));
+		if(nRecv_Byte == 0)
+                {
+			printf("connection %d closed.\n", Client_ThreadArg->connfd);
 			//hangup(); // 绲愭潫 modem
 			break;
-		} else {
-			buf[n] = 0;
-			_DEBUG("recv: ip=%s, length=%d, msg=%s", inet_ntoa(arg->caddr.sin_addr), n, buf);
+		}
+                else
+                {
+			sock_recv_buf[nRecv_Byte] = '\0';
+			_DEBUG("recv: ip=%s, length=%d, msg=%s", 
+                                         inet_ntoa(Client_ThreadArg->caddr.sin_addr), nRecv_Byte, sock_recv_buf);
 		}
 		
-		// strip \r\n
-		for(i=0;i<strlen(buf);i++) {
-			if(buf[i] == '\r' || buf[i] == '\n') {
-				buf[i] = 0;
+		// strip \r\n in recvive data
+		for(i = 0; i < strlen(sock_recv_buf); i++)
+                {
+			if((sock_recv_buf[i] == '\r') || (sock_recv_buf[i] == '\n'))
+                        {
+				sock_recv_buf[i] = 0;
 				break;
 			}
 		}
@@ -388,13 +391,14 @@ void *XW_Pthread_ClientApplicationManage(void *args)
 		
 		pthread_t id;
 		thread_arg2 *arg2 = (thread_arg2*)malloc(sizeof(thread_arg2));
-		arg2->buf = malloc(strlen(buf)+1); // for ending \0
-		strcpy(arg2->buf, buf);
-		arg2->arg = arg;
+		arg2->buf = malloc(strlen(sock_recv_buf)+1); // for ending \0
+		strcpy(arg2->buf, sock_recv_buf);
+		arg2->arg = Client_ThreadArg;
 		//_pthread_create(&id, (void*)handle_command, arg2);
 	}
-	close(arg->connfd);
-	arg->connfd = 0;
+    
+	close(Client_ThreadArg->connfd);
+	Client_ThreadArg->connfd = 0;
 
         p->state = EXIT;
         if(XW_ManagePthread_SendSignal(&signal, PTHREAD_CLIENT_MANAGE_ID) == false)
@@ -402,7 +406,7 @@ void *XW_Pthread_ClientApplicationManage(void *args)
                _ERROR("PTHREAD_CLIENT_MANAGE_ID[%d] error !'\n", PTHREAD_CLIENT_MANAGE_ID);
         }
         
-	_DEBUG("Client Connected thread exit !");
+	_DEBUG("Client Connected manage thread exit !");
 
         return 0;
 }
