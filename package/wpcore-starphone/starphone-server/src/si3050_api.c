@@ -548,7 +548,7 @@ void Si3050_Clear_Lowpwr_Path(void)
     gpio_spi_write(SI3050_REG_DAA_CONTROL1, 0x00);
 }
 
-void Si3050_DAA_System_Init(void)
+void XW_Si3050_DAA_System_Init(void)
 {
     //unsigned char regCfg = 0;
 
@@ -569,6 +569,11 @@ void Si3050_DAA_System_Init(void)
 
 void *XW_Pthread_ModemCtrlDeamon(void *args)
 {
+        int i;
+        int j;
+        int len;
+	char *sock_send_msg = NULL;
+    
         MspSendCmd_t cmdData;	//��Ϣ���д���ṹ
 	PTHREAD_BUF  signal;
 	STATE_PREVIEW *p;
@@ -589,9 +594,213 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
                 }    
 
                 //TODO:
-                
+                XW_ManagePthread_ReadSignal(&send_buf, PTHREAD_MODEM_CTRL_ID, HI_FALSE);
+                if(send_buf.start_id != PTHREAD_CLIENT_MANAGE_ID)
+                {
+                        sleep(2);
+                        continue;
+                }
 
-                sleep(10);
+                //switch(send_buf.m_buffer)
+                //Paser data which is transfer from phone
+                if(strncmp(send_buf.m_buffer, "help", 4)==0) 
+                {
+        		sock_send_msg = "This is help message\n";
+        		//_send(send_buf.m_args->connfd, sock_send_msg, strlen(sock_send_msg));
+        	}
+        	else if(strncmp(send_buf.m_buffer, "list", 4)==0)
+                {
+        		char buf2[MAX+1][100];
+        		strcpy(buf2[0],  "Client list:\n");
+        		j=1;
+        		//for(i=0;i<MAX;i++) {
+        		//	if(send_buf.m_args->connfd != 0) {
+        		//		sprintf(buf2[j], "%d: %s:%d\n", j, 
+        		//				inet_ntoa(clients[i]->caddr.sin_addr), ntohs(clients[i]->caddr.sin_port));
+        		//		j++;
+        		//	}
+        		//}
+        		len = 0;
+        		for(i=0;i<j;i++) {
+        			len += strlen(buf2[i]);
+        		}
+        		sock_send_msg = calloc(1, len); // init to 0
+        		for(i=0;i<j;i++) {
+        			strcat(sock_send_msg, buf2[i]);
+        		}
+        		//_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        	}
+                /*
+        	else if(strncmp(send_buf.m_buffer, "dial:", 5)==0) { // dial:12345
+        		if(busy==1) {
+        			sock_send_msg = "busy\n"; //  關閉撥號狀態
+        			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        			return;
+        		}
+        		//char number[50];
+        		//strncpy(number, buf+5, strlen(buf)-5);
+        		//thread_arg_hook arg_hook;
+        		//arg_hook.caddr = arg->caddr;
+        		//arg_hook.number = (char*)calloc(1, 20);
+        		//strncpy(arg_hook.number, send_buf.m_buffer+5, strlen(send_buf.m_buffer)-5);
+        		//off_hook(arg->caddr, number);
+        		
+        		arg->busy = 1; // 把我自己設定成外線忙碌
+        		busy = 1; // 通話中
+        		pthread_t id;
+        		//_pthread_create(&id, (void*)off_hook, &arg_hook);
+        		//pthread_join(id, NULL);
+        		printf("dial ended, send on_hook\n");
+        		sock_send_msg = "on_hook\n";
+        		busy = 0;
+        		arg->busy = 0; // 取消自己忙線狀態
+        		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        		//exit(-1);
+        	}
+        	else if(strncmp(send_buf.m_buffer, "key:", 4)==0) { // 通話中的按鍵:0~9, *, #
+        		if(busy==0) {
+        			sock_send_msg = "no communication\n"; // 還在掛機狀態, 不能用這個指令
+        			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        			return;
+        		}
+        		modem_mute = 1; // 靜音, 避免干擾 dtmf tone
+        		usleep(500000); // delay, 因為 modem 出聲音本來就有延遲
+        		//char number[50];
+        		//strncpy(number, buf+5, strlen(buf)-5);
+        		char buf2[3] = {0x21, 0x1, 0};
+        		if(send_buf.m_buffer[4]>=49 && send_buf.m_buffer[4]<=57) { // 1~9直接送
+        			buf2[2] = send_buf.m_buffer[4]-48;
+        		}else if(send_buf.m_buffer[4]=='*')  {
+        			buf2[2] = 0xb;
+        		}else if(send_buf.m_buffer[4]=='#') {
+        			buf2[2] = 0xc;
+        		}else if(send_buf.m_buffer[4]=='0') {
+        			buf2[2] = 0xa;
+        		}
+        		//send_pstn(3, buf2);
+        		sock_send_msg = "key_ok\n";
+        		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        		usleep(500000); // delay, 因為 modem 出聲音本來就有延遲
+        		modem_mute = 0;
+        		//exit(-1);
+        	}
+        	else if(strcmp(send_buf.m_buffer, "hangup")==0) {
+        		sock_send_msg ="ok\n";
+        		//hangup();
+        		busy = 0;
+        		arg->busy=0;
+        		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        	}
+        	else if(strncmp(send_buf.m_buffer, "test_ring:", 10)==0) { // test_ring:12345 測試來電
+        		sock_send_msg ="ok\n";
+        		char buf2[100];
+        		sprintf(buf2, "external:%s\n", send_buf.m_buffer+10);
+        		//broadcast_clients(buf2);
+        		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        	}
+        	else if(strcmp(send_buf.m_buffer, "ring_end")==0) { // 響鈴停止: 來電停止, 或來電已被接起通知其他人關閉dialog
+        			sock_send_msg ="ok\n";
+        			broadcast_clients("ring_end\n");
+        			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        	}
+        	else if(strcmp(send_buf.m_buffer, "internal_end")==0) { // 結束內線通話
+        		sock_send_msg = "internal_end\n";
+        		if(arg->peer != NULL) {
+        			_send(arg->peer->connfd, sock_send_msg, strlen(sock_send_msg));
+        			(*arg->peer).peer = NULL; // 清除對方
+        			arg->peer = NULL; // 清除自己紀錄
+        			arg->busy=0;
+        			printf("id=%d",arg->id);
+        		} else {
+        			printf("peer is null??\n");
+        		}
+        		sock_send_msg ="ok\n";
+        		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        	}
+        	else if(strcmp(send_buf.m_buffer, "pick_up")==0) { // 外線有人接起了
+        		//broadcast_clients("ring_end\n");
+        		//thread_arg_hook arg_hook;
+        		//arg_hook.caddr = arg->caddr;
+        		//arg_hook.number = NULL;
+        		pthread_t id;
+        		//_pthread_create(&id, (void*)off_hook, &arg_hook);
+        		//pthread_join(id, NULL);
+        		sock_send_msg = "on_hook\n";
+        		//_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        	}
+        	else if(strncmp(send_buf.m_buffer, "internal:", 9)==0) { // test_dial:12345 內線呼叫
+        		// find client with the id
+        		for(i=0;i<MAX;i++) {
+        			printf("enter internal top\n,internal id =%d\n",clients[i]->id);
+        			if(clients[i]->id == atoi(send_buf.m_buffer+9)) { // atoi 會自動忽略無法轉的字元
+        				// 對方忙線
+        				if(clients[i]->peer != NULL || clients[i]->busy==1) {
+        					sock_send_msg ="busy\n";
+        					_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        					return;
+        				}
+        				char buf2[32];
+        				// 回傳對方 ip
+        				sprintf(buf2, "internal_ip:%s\n", inet_ntoa(clients[i]->caddr.sin_addr));
+        				_send(arg->connfd, buf2, strlen(buf2));
+        				arg->peer = clients[i]; // 紀錄通話對象
+        				
+        				// 通知對方有人找他
+        				sprintf(buf2, "internal:%d,%s\n", 
+        						arg->id, 
+        						inet_ntoa(arg->caddr.sin_addr));
+        				_send(clients[i]->connfd, buf2, strlen(buf2));
+        				clients[i]->peer = arg;
+        				
+        				return;
+        			}
+        		}
+        		sock_send_msg ="not found\n";
+        		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        	}
+        	else if(strncmp(send_buf.m_buffer, "register:", 9)==0) { // test_dial:12345 註冊分機號碼
+        		// check exist
+        		for(i=0;i<MAX;i++) {
+        			if(clients[i]->id == atoi(send_buf.m_buffer+9)) { // atoi 會自動忽略無法轉的字元
+        				char *buf2 = "register_exist\n";
+        				_send(arg->connfd, buf2, strlen(buf2));
+        				return;
+        			}
+        		}
+        		// 沒重複, 登記成功
+        		arg->id = atoi(send_buf.m_buffer+9);
+        		sock_send_msg ="register_ok\n";
+        		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        	}
+        	else if(strncmp(send_buf.m_buffer, "deny", 4)==0) { // 拒接外線
+        		// 拿起再馬上掛掉
+        		char buf2[2] = {0x12, 0}; // off-hook
+        		send_pstn(2, buf2);
+        		
+        		buf2[0] = 0x13; // on-hook
+        		send_pstn(2, buf2);
+        		
+        		sock_send_msg ="ok\n";
+        		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        	}
+        	else if(strncmp(send_buf.m_buffer, "switch", 6)==0) { // 插接
+        		if(busy==1) {
+        			//pstn_switch(); // 掛掉再馬上拿起來
+        			
+        			sock_send_msg = "switch_ok\n";
+        			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        			busy = 1; // FIXME: 強制再指定成1, 要找是那邊把他變成 0 的
+        		} else {
+        			sock_send_msg = "no communication\n"; // 還在掛機狀態, 不能用這個指令
+        			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        		}
+        	}
+        	else {
+        		sock_send_msg = "unknown command\n";
+        		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
+        	}
+                */
+                //sleep(10);
         }
 
         p->state = EXIT;

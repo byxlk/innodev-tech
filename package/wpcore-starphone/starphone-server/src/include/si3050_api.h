@@ -124,7 +124,7 @@ void si3050_hw_reset(void);
 
 void si3050_sw_reset(SPS_SYSTEM_INFO_T *sps);
 
-void Si3050_DAA_System_Init(void);
+void XW_Si3050_DAA_System_Init(void);
 
 void si3050_pcm_dev_drv_init(SPS_SYSTEM_INFO_T *sps);
 

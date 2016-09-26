@@ -67,7 +67,7 @@ int XW_SysModuleBoot(void)
 
     XW_MsgQueue_Create();/*创建消息队列/bin/ls*/
 
-    Si3050_DAA_System_Init();/*设置Si3050系统初始化*/
+    XW_Si3050_DAA_System_Init();/*设置Si3050系统初始化*/
 
 
     // Thread start run ...

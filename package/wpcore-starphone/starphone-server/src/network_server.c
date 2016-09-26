@@ -11,8 +11,6 @@
 
 #include "include/xw_export.h"
 
-#define MAX 15
-
 int busy = 0; // æ˜¯å¦é€šè©±ä¸­
 
 // clients
@@ -329,7 +327,7 @@ void *XW_Pthread_ClientApplicationManage(void *args)
 {
         int i;
         int nRecv_Byte = 0;                         //Recvive byte counter
-        char sock_recv_buf[100] = {'\0'};
+        char sock_recv_buf[128] = {'\0'};
 
         MspSendCmd_t cmdData;	//ÏûÏ¢¶ÓÁÐ´«Êä½á¹¹
 	PTHREAD_BUF  signal;
@@ -368,32 +366,39 @@ void *XW_Pthread_ClientApplicationManage(void *args)
                 {
 			printf("connection %d closed.\n", Client_ThreadArg->connfd);
 			//hangup(); // çµæŸ modem
+			
+                        send_buf.start_id = PTHREAD_CLIENT_MANAGE_ID;
+                        sprintf(send_buf.m_buffer, "hangup");
+			XW_ManagePthread_SendSignal(&send_buf, PTHREAD_MODEM_CTRL_ID);
 			break;
 		}
                 else
                 {
 			sock_recv_buf[nRecv_Byte] = '\0';
+                        send_buf.start_id = PTHREAD_CLIENT_MANAGE_ID;
+                        strcpy(send_buf.m_buffer, sock_recv_buf);
+                        XW_ManagePthread_SendSignal(&send_buf, PTHREAD_MODEM_CTRL_ID);
 			_DEBUG("recv: ip=%s, length=%d, msg=%s", 
                                          inet_ntoa(Client_ThreadArg->caddr.sin_addr), nRecv_Byte, sock_recv_buf);
 		}
 		
 		// strip \r\n in recvive data
-		for(i = 0; i < strlen(sock_recv_buf); i++)
-                {
-			if((sock_recv_buf[i] == '\r') || (sock_recv_buf[i] == '\n'))
-                        {
-				sock_recv_buf[i] = 0;
-				break;
-			}
-		}
+		//for(i = 0; i < strlen(sock_recv_buf); i++)
+                //{
+		//	if((sock_recv_buf[i] == '\r') || (sock_recv_buf[i] == '\n'))
+                //        {
+		//		sock_recv_buf[i] = 0;
+		//		break;
+		//	}
+		//}
 		//buf[strlen(buf)-2] = 0;
 		//handle_command(arg, buf);
 		
-		pthread_t id;
-		thread_arg2 *arg2 = (thread_arg2*)malloc(sizeof(thread_arg2));
-		arg2->buf = malloc(strlen(sock_recv_buf)+1); // for ending \0
-		strcpy(arg2->buf, sock_recv_buf);
-		arg2->arg = Client_ThreadArg;
+		//pthread_t id;
+		//thread_arg2 *arg2 = (thread_arg2*)malloc(sizeof(thread_arg2));
+		//arg2->buf = malloc(strlen(sock_recv_buf)+1); // for ending \0
+		//strcpy(arg2->buf, sock_recv_buf);
+		//arg2->arg = Client_ThreadArg;
 		//_pthread_create(&id, (void*)handle_command, arg2);
 	}
     

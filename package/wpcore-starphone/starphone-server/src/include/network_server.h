@@ -1,6 +1,7 @@
 #ifndef NETWORK_SERVER_H
 #define NETWORK_SERVER_H
 
+#define MAX 15
 #define BRIDGE_NW_CARD "br-lan"
 
 void XW_pthread_create(pthread_t *id, void*(routine)(void*), void *arg) ;
