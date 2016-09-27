@@ -548,6 +548,14 @@ void Si3050_Clear_Lowpwr_Path(void)
     gpio_spi_write(SI3050_REG_DAA_CONTROL1, 0x00);
 }
 
+
+void Modem_DialTelNum(char dial_num)
+{
+
+        _DEBUG("Dial Number :  %c",dial_num);
+        return ;
+}
+
 void XW_Si3050_DAA_System_Init(void)
 {
     //unsigned char regCfg = 0;
@@ -569,13 +577,10 @@ void XW_Si3050_DAA_System_Init(void)
 
 void *XW_Pthread_ModemCtrlDeamon(void *args)
 {
-        int i;
-        int j;
-        int len;
 	char *sock_send_msg = NULL;
+        thread_arg *pthread_client = NULL; 
     
-        MspSendCmd_t cmdData;	//��Ϣ���д���ṹ
-	PTHREAD_BUF  signal;
+        MspSendCmd_t cmdData;	//��Ϣ���д���ṹ	
 	STATE_PREVIEW *p;
         PTHREAD_BUF send_buf;
         SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
@@ -586,33 +591,81 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         
         while(p->power == PTHREAD_POWER_ON)
         {
-                XW_ManagePthread_ReadSignal(&signal, PTHREAD_MODEM_CTRL_ID, HI_FALSE);
-		if (signal.start_id == PTHREAD_MAIN_ID && signal.m_signal == EXIT)
-                {      
-                        p->state = EXIT;
-                        break;
-                }    
-
-                //TODO:
-                XW_ManagePthread_ReadSignal(&send_buf, PTHREAD_MODEM_CTRL_ID, HI_FALSE);
-                if(send_buf.start_id != PTHREAD_CLIENT_MANAGE_ID)
+                XW_ManagePthread_ReadSignal(&send_buf, PTHREAD_MODEM_CTRL_ID, HI_TRUE);                
+                if(send_buf.start_id != PTHREAD_CLIENT_MANAGE_ID || strlen(send_buf.m_buffer) == 0)
                 {
+                        if (send_buf.start_id == PTHREAD_MAIN_ID && send_buf.m_signal == EXIT)
+                        {      
+                                p->state = EXIT;
+                                break;
+                        }    
+                        _DEBUG("start_id = %d, strlen(send_buf.m_buffer) = %d",
+                                            send_buf.start_id, strlen(send_buf.m_buffer));
                         sleep(2);
                         continue;
                 }
 
-                //switch(send_buf.m_buffer)
+                //TODO:
+                pthread_client = (thread_arg *)(send_buf.m_args);
+                if(pthread_client == NULL)
+                {
+                        _ERROR("client[%d] address transfer faild...",send_buf.m_value);
+                }
+                else
+                {
+                        _DEBUG("[Client] IP=%s,  Msg=%s", 
+                                         inet_ntoa(pthread_client->caddr.sin_addr), send_buf.m_buffer);
+                }
+                
                 //Paser data which is transfer from phone
                 if(strncmp(send_buf.m_buffer, "help", 4)==0) 
                 {
         		sock_send_msg = "This is help message\n";
         		//_send(send_buf.m_args->connfd, sock_send_msg, strlen(sock_send_msg));
         	}
+                else if(strcmp(send_buf.m_buffer, "hangup")==0) 
+                {        		
+                        if(pthread_client->busy == 1)
+                        {
+        		        //Modem_Hangup();
+        		        sock_send_msg ="ok\n";
+         		        pthread_client->busy = 0;
+        		        _send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
+                        }
+                        else
+                        {
+                                continue;
+                        }
+        	}
+                else if(strncmp(send_buf.m_buffer, "dial:", 5)==0)// dial:12345
+                { 
+        		if(pthread_client->busy == 1)
+                        {
+        			sock_send_msg = "busy\n"; //  關閉撥號狀態
+        			_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
+        			continue;
+        		}
+                        pthread_client->busy = 1;
+
+                        //Parse dial number
+                        unsigned char i = 0;
+                        char *dial_str =&send_buf.m_buffer[5];
+                        for(i = 0; i < (strlen(send_buf.m_buffer)-6); i++)
+                                Modem_DialTelNum(dial_str[i]);
+                        
+        		//pthread_t id;
+        		//_pthread_create(&id, (void*)off_hook, &arg_hook);
+        		//pthread_join(id, NULL);
+        		//printf("dial ended, send on_hook\n");
+        		//sock_send_msg = "on_hook\n";
+        		//_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
+                        //pthread_client->busy = 0;
+        	}
         	else if(strncmp(send_buf.m_buffer, "list", 4)==0)
                 {
         		char buf2[MAX+1][100];
         		strcpy(buf2[0],  "Client list:\n");
-        		j=1;
+        		//j=1;
         		//for(i=0;i<MAX;i++) {
         		//	if(send_buf.m_args->connfd != 0) {
         		//		sprintf(buf2[j], "%d: %s:%d\n", j, 
@@ -620,43 +673,17 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		//		j++;
         		//	}
         		//}
-        		len = 0;
-        		for(i=0;i<j;i++) {
-        			len += strlen(buf2[i]);
-        		}
-        		sock_send_msg = calloc(1, len); // init to 0
-        		for(i=0;i<j;i++) {
-        			strcat(sock_send_msg, buf2[i]);
-        		}
+        		//len = 0;
+        		//for(i=0;i<j;i++) {
+        		//	len += strlen(buf2[i]);
+        		//}
+        		//sock_send_msg = calloc(1, len); // init to 0
+        		//for(i=0;i<j;i++) {
+        		//	strcat(sock_send_msg, buf2[i]);
+        		//}
         		//_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
         	}
-                /*
-        	else if(strncmp(send_buf.m_buffer, "dial:", 5)==0) { // dial:12345
-        		if(busy==1) {
-        			sock_send_msg = "busy\n"; //  關閉撥號狀態
-        			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
-        			return;
-        		}
-        		//char number[50];
-        		//strncpy(number, buf+5, strlen(buf)-5);
-        		//thread_arg_hook arg_hook;
-        		//arg_hook.caddr = arg->caddr;
-        		//arg_hook.number = (char*)calloc(1, 20);
-        		//strncpy(arg_hook.number, send_buf.m_buffer+5, strlen(send_buf.m_buffer)-5);
-        		//off_hook(arg->caddr, number);
-        		
-        		arg->busy = 1; // 把我自己設定成外線忙碌
-        		busy = 1; // 通話中
-        		pthread_t id;
-        		//_pthread_create(&id, (void*)off_hook, &arg_hook);
-        		//pthread_join(id, NULL);
-        		printf("dial ended, send on_hook\n");
-        		sock_send_msg = "on_hook\n";
-        		busy = 0;
-        		arg->busy = 0; // 取消自己忙線狀態
-        		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
-        		//exit(-1);
-        	}
+                /*        	
         	else if(strncmp(send_buf.m_buffer, "key:", 4)==0) { // 通話中的按鍵:0~9, *, #
         		if(busy==0) {
         			sock_send_msg = "no communication\n"; // 還在掛機狀態, 不能用這個指令
@@ -683,14 +710,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		usleep(500000); // delay, 因為 modem 出聲音本來就有延遲
         		modem_mute = 0;
         		//exit(-1);
-        	}
-        	else if(strcmp(send_buf.m_buffer, "hangup")==0) {
-        		sock_send_msg ="ok\n";
-        		//hangup();
-        		busy = 0;
-        		arg->busy=0;
-        		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
-        	}
+        	}        	
         	else if(strncmp(send_buf.m_buffer, "test_ring:", 10)==0) { // test_ring:12345 測試來電
         		sock_send_msg ="ok\n";
         		char buf2[100];
@@ -804,6 +824,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         }
 
         p->state = EXIT;
+        PTHREAD_BUF  signal;
         if(XW_ManagePthread_SendSignal(&signal, PTHREAD_MODEM_CTRL_ID) == false)
         {
                 _ERROR("PTHREAD_MODEM_CTRL_ID[%d] error !'\n", PTHREAD_MODEM_CTRL_ID);

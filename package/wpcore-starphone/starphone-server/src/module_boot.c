@@ -114,9 +114,9 @@ void XW_SysModuleUnBoot(void)
 
     XW_ManagePthread_SendExitSignal(PTHREAD_CLIENT_MANAGE_ID, 0, true, true);
     XW_ManagePthread_SendExitSignal(PTHREAD_MODEM_CTRL_ID, 0, true, true);
-    XW_ManagePthread_SendExitSignal(PTHREAD_USBHOTPLUG_ID, 0, true, true);
-    XW_ManagePthread_SendExitSignal(PTHREAD_DISKM_ID, 0, true, true);
-    XW_ManagePthread_SendExitSignal(PTHREAD_UPDATE_ID, 0, true, true);
+    //XW_ManagePthread_SendExitSignal(PTHREAD_USBHOTPLUG_ID, 0, true, true);
+    //XW_ManagePthread_SendExitSignal(PTHREAD_DISKM_ID, 0, true, true);
+    //XW_ManagePthread_SendExitSignal(PTHREAD_UPDATE_ID, 0, true, true);
 
     printf("power off \n");
 }

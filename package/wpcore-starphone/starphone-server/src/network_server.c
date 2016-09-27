@@ -13,15 +13,6 @@
 
 int busy = 0; // 是否通話中
 
-// clients
-typedef struct _thread_arg {
-	struct sockaddr_in caddr;
-	int connfd;
-	int id; // 內線id
-	struct _thread_arg *peer; // 內線通話方資訊(有代表內線忙碌)
-	int busy; // 是否外線通話中
-} thread_arg;
-
 typedef struct _thread_arg2 {
 	thread_arg *arg;
 	char *buf;
@@ -341,14 +332,14 @@ void *XW_Pthread_ClientApplicationManage(void *args)
 
         //_DEBUG("wait read client data...");
         XW_ManagePthread_ReadSignal(&send_buf, PTHREAD_CLIENT_MANAGE_ID, HI_TRUE);        
-        thread_arg *Client_ThreadArg = (thread_arg*)(send_buf.m_args);
-        if(Client_ThreadArg == NULL)
+        thread_arg *pthread_client = (thread_arg*)(send_buf.m_args);
+        if(pthread_client == NULL)
         {
-                _ERROR("client[i] address transfer faild");
+                _ERROR("client[%d] address transfer faild...",send_buf.m_value);
         }
         
-	sprintf(sock_recv_buf, "Hello:%d\n", Client_ThreadArg->id); // 告知 client 他的內線號碼
-	_send(Client_ThreadArg->connfd, sock_recv_buf, strlen(sock_recv_buf));
+	sprintf(sock_recv_buf, "Hello:%d\n", pthread_client->id); // 告知 client 他的內線號碼
+	_send(pthread_client->connfd, sock_recv_buf, strlen(sock_recv_buf));
 	//_DEBUG("send buf data to socket");
     
 	while(p->power == PTHREAD_POWER_ON)
@@ -361,10 +352,10 @@ void *XW_Pthread_ClientApplicationManage(void *args)
                 }    
 
                 //TODO: recv data from sock
-		nRecv_Byte = _recv(Client_ThreadArg->connfd, sock_recv_buf, sizeof(sock_recv_buf));
+		nRecv_Byte = _recv(pthread_client->connfd, sock_recv_buf, sizeof(sock_recv_buf));
 		if(nRecv_Byte == 0)
                 {
-			printf("connection %d closed.\n", Client_ThreadArg->connfd);
+			printf("connection %d closed.\n", pthread_client->connfd);
 			//hangup(); // 結束 modem
 			
                         send_buf.start_id = PTHREAD_CLIENT_MANAGE_ID;
@@ -379,7 +370,7 @@ void *XW_Pthread_ClientApplicationManage(void *args)
                         strcpy(send_buf.m_buffer, sock_recv_buf);
                         XW_ManagePthread_SendSignal(&send_buf, PTHREAD_MODEM_CTRL_ID);
 			_DEBUG("recv: ip=%s, length=%d, msg=%s", 
-                                         inet_ntoa(Client_ThreadArg->caddr.sin_addr), nRecv_Byte, sock_recv_buf);
+                                         inet_ntoa(pthread_client->caddr.sin_addr), nRecv_Byte, sock_recv_buf);
 		}
 		
 		// strip \r\n in recvive data
@@ -402,8 +393,8 @@ void *XW_Pthread_ClientApplicationManage(void *args)
 		//_pthread_create(&id, (void*)handle_command, arg2);
 	}
     
-	close(Client_ThreadArg->connfd);
-	Client_ThreadArg->connfd = 0;
+	close(pthread_client->connfd);
+	pthread_client->connfd = 0;
 
         p->state = EXIT;
         if(XW_ManagePthread_SendSignal(&signal, PTHREAD_CLIENT_MANAGE_ID) == false)
