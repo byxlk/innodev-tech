@@ -20,11 +20,11 @@ typedef struct _thread_arg2 {
 
 thread_arg *clients[MAX]; // max 10 clients
 
-int _recv(int connfd, void* buf, int size) 
+int sock_recv(int connfd, void* buf, int size) 
 {
 	int n;
     
-	if( (n=recv(connfd, buf, size, 0)) < 0) 
+	if( (n = recv(connfd, buf, size, 0)) < 0) 
         {
 		perror("recv");
 		pthread_exit(NULL);
@@ -33,7 +33,7 @@ int _recv(int connfd, void* buf, int size)
 	return n;
 }
 
-int _send(int connfd, void* buf, int size) 
+int sock_send(int connfd, void* buf, int size) 
 {
 	int n;
     
@@ -281,7 +281,7 @@ void *XW_Pthread_ClientConnectManage(void *args)
                 {
                     _DEBUG("Max client reached!\n");
                     char *msg = "Max client reached. Bye~\n";
-                    _send(connfd, msg, strlen(msg));
+                    sock_send(connfd, msg, strlen(msg));
                     close(connfd);
                     continue;
                 }
@@ -339,7 +339,7 @@ void *XW_Pthread_ClientApplicationManage(void *args)
         }
         
 	sprintf(sock_recv_buf, "Hello:%d\n", pthread_client->id); // 告知 client 他的內線號碼
-	_send(pthread_client->connfd, sock_recv_buf, strlen(sock_recv_buf));
+	sock_send(pthread_client->connfd, sock_recv_buf, strlen(sock_recv_buf));
 	//_DEBUG("send buf data to socket");
     
 	while(p->power == PTHREAD_POWER_ON)
@@ -352,7 +352,7 @@ void *XW_Pthread_ClientApplicationManage(void *args)
                 }    
 
                 //TODO: recv data from sock
-		nRecv_Byte = _recv(pthread_client->connfd, sock_recv_buf, sizeof(sock_recv_buf));
+		nRecv_Byte = sock_recv(pthread_client->connfd, sock_recv_buf, sizeof(sock_recv_buf));
 		if(nRecv_Byte == 0)
                 {
 			printf("connection %d closed.\n", pthread_client->connfd);

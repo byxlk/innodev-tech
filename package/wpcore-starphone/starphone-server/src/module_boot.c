@@ -102,17 +102,19 @@ void XW_SysModuleUnBoot(void)
 
     //XW_ManagePthread_SendExitSignal(PTHREAD_RECORD_SCHEDULE_ID, 0, false, true);/*停止录像调度线程*/
 
-    _DEBUG("Stop SerialComminucation thread...");
+    _DEBUG("Stop UDP broadcast Thread...");
     XW_ManagePthread_SendExitSignal(PTHREAD_UDP_BROADCAST_ID, 0, true, true);
-/*停止串口线程*/
     
-    _DEBUG("Stop Preview thread...");
+    _DEBUG("Stop Client Connection Thread...");
     XW_ManagePthread_SendExitSignal(PTHREAD_CLIENT_CONNECT_ID, 0, true, true);
-/*停止预览线程*/
-    _DEBUG("UnInit MPP System...");
+
+    //_DEBUG("UnInit MPP System...");
     //XW_Global_SetSystemMPP_UnInit();/*设置MPP系统反初始化*/
 
+    _DEBUG("Stop Client Manage Thread...");
     XW_ManagePthread_SendExitSignal(PTHREAD_CLIENT_MANAGE_ID, 0, true, true);
+
+    _DEBUG("Stop Modem Control Thread...");
     XW_ManagePthread_SendExitSignal(PTHREAD_MODEM_CTRL_ID, 0, true, true);
     //XW_ManagePthread_SendExitSignal(PTHREAD_USBHOTPLUG_ID, 0, true, true);
     //XW_ManagePthread_SendExitSignal(PTHREAD_DISKM_ID, 0, true, true);

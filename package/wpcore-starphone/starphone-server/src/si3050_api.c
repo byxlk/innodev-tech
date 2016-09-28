@@ -591,6 +591,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         
         while(p->power == PTHREAD_POWER_ON)
         {
+                memset(&send_buf, 0, sizeof(PTHREAD_BUF));
                 XW_ManagePthread_ReadSignal(&send_buf, PTHREAD_MODEM_CTRL_ID, HI_TRUE);                
                 if(send_buf.start_id != PTHREAD_CLIENT_MANAGE_ID || strlen(send_buf.m_buffer) == 0)
                 {
@@ -630,7 +631,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		        //Modem_Hangup();
         		        sock_send_msg ="ok\n";
          		        pthread_client->busy = 0;
-        		        _send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
+        		        sock_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
                         }
                         else
                         {
@@ -642,7 +643,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		if(pthread_client->busy == 1)
                         {
         			sock_send_msg = "busy\n"; //  關閉撥號狀態
-        			_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
+        			sock_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
         			continue;
         		}
                         pthread_client->busy = 1;

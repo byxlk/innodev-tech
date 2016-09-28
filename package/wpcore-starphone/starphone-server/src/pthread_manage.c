@@ -223,8 +223,7 @@ PTHREAD_BUF *)sbuf, sizeof(PTHREAD_BUF));
   
 *******************************************************************************
 ****************************/
-void XW_ManagePthread_SendExitSignal(U8_T pthread_id, U8_T channel, bool 
-isSend, bool block)
+void XW_ManagePthread_SendExitSignal(U8_T pthread_id, U8_T channel, bool isSend, bool block)
 {
 	/*发送停止线程信号*/
 
