@@ -120,7 +120,7 @@ void si3050_pcm_loopback(void);
 ///////////////////////////////////////////////////////
 void si3050_get_ver_info(void);
 
-void si3050_hw_reset(void);
+void Si3050_Pin_Reset(void);
 
 void si3050_sw_reset(SPS_SYSTEM_INFO_T *sps);
 

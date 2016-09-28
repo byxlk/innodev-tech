@@ -138,13 +138,16 @@ static void param_init(struct snd_pcm_hw_params *p)
 
     memset(p, 0, sizeof(*p));
     for (n = SNDRV_PCM_HW_PARAM_FIRST_MASK;
-         n <= SNDRV_PCM_HW_PARAM_LAST_MASK; n++) {
+         n <= SNDRV_PCM_HW_PARAM_LAST_MASK; n++)
+    {
             struct snd_mask *m = param_to_mask(p, n);
             m->bits[0] = ~0;
             m->bits[1] = ~0;
     }
+         
     for (n = SNDRV_PCM_HW_PARAM_FIRST_INTERVAL;
-         n <= SNDRV_PCM_HW_PARAM_LAST_INTERVAL; n++) {
+         n <= SNDRV_PCM_HW_PARAM_LAST_INTERVAL; n++)
+    {
             struct snd_interval *i = param_to_interval(p, n);
             i->min = 0;
             i->max = ~0;
@@ -195,8 +198,8 @@ static int oops(struct pcm *pcm, int e, const char *fmt, ...)
     sz = strlen(pcm->error);
 
     if (errno)
-        snprintf(pcm->error + sz, PCM_ERROR_MAX - sz,
-                 ": %s", strerror(e));
+        snprintf(pcm->error + sz, PCM_ERROR_MAX - sz, ": %s", strerror(e));
+    
     return -1;
 }
 
@@ -632,7 +635,8 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 
     pcm->flags = flags;
     pcm->fd = open(fn, O_RDWR);
-    if (pcm->fd < 0) {
+    if (pcm->fd < 0)
+    {
         oops(pcm, errno, "cannot open device '%s'", fn);
         return pcm;
     }
@@ -643,23 +647,19 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     }
 
     param_init(&params);
-    param_set_mask(&params, SNDRV_PCM_HW_PARAM_FORMAT,
-                   pcm_format_to_alsa(config->format));
-    param_set_mask(&params, SNDRV_PCM_HW_PARAM_SUBFORMAT,
-                   SNDRV_PCM_SUBFORMAT_STD);
+    param_set_mask(&params, SNDRV_PCM_HW_PARAM_FORMAT,  pcm_format_to_alsa(config->format));
+    param_set_mask(&params, SNDRV_PCM_HW_PARAM_SUBFORMAT,  SNDRV_PCM_SUBFORMAT_STD);
     param_set_min(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE, config->period_size);
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_SAMPLE_BITS,
-                  pcm_format_to_bits(config->format));
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_FRAME_BITS,
-                  pcm_format_to_bits(config->format) * config->channels);
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_CHANNELS,
-                  config->channels);
+    param_set_int(&params, SNDRV_PCM_HW_PARAM_SAMPLE_BITS,  pcm_format_to_bits(config->format));
+    param_set_int(&params, SNDRV_PCM_HW_PARAM_FRAME_BITS,  pcm_format_to_bits(config->format) * config->channels);
+    param_set_int(&params, SNDRV_PCM_HW_PARAM_CHANNELS,  config->channels);
     param_set_int(&params, SNDRV_PCM_HW_PARAM_PERIODS, config->period_count);
     param_set_int(&params, SNDRV_PCM_HW_PARAM_RATE, config->rate);
 
     if (flags & PCM_NOIRQ) {
 
-        if (!(flags & PCM_MMAP)) {
+        if (!(flags & PCM_MMAP)) 
+        {
             oops(pcm, -EINVAL, "noirq only currently supported with mmap().");
             goto fail;
         }

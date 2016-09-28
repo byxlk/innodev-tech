@@ -66,9 +66,9 @@ struct pcm* si3050_get_pcm_out(void)
     si3050_pcm_init_config(&config);
     
     pcm_out = pcm_open(card, device, PCM_OUT, &config);
-   	if (!pcm_out || !pcm_is_ready(pcm_out)) {
-        printf("Unable to open PCM device %u (%s)\n",
-                device, pcm_get_error(pcm_out));
+    if (!pcm_out || !pcm_is_ready(pcm_out))
+    {
+        printf("Unable to open PCM device %u (%s)\n", device, pcm_get_error(pcm_out));
         return NULL;
     }
     
@@ -165,7 +165,7 @@ void si3050_get_ver_info(void)
         
         _DEBUG("Get si3050 infomation Start ...");        
         
-        sys_ver_val = gpio_spi_read(11);        
+        sys_ver_val = gpio_spi_read(SI3050_REG_CHIP_A_REV);        
         //line_ver_val = gpio_spi_read(13);
         
         _DEBUG("\n");
@@ -192,10 +192,10 @@ void si3050_get_ver_info(void)
         _DEBUG("Line-Side Device Revision: 0x%0x",((line_ver_val & 0x3C) >> 2));
         _DEBUG("\n");
 
-        _DEBUG("REG[2] Default = 0x03, Read Value = 0x%0x", gpio_spi_read(2)); //0x0000_0011
-        gpio_spi_write(2, 0xc5);
-        _DEBUG("REG[2] Write Value = 0xc5, Read Value = 0x%0x", gpio_spi_read(2)); //0x0000_0011
-        gpio_spi_write(2, 0xc3);
+        //_DEBUG("REG[2] Default = 0x03, Read Value = 0x%0x", gpio_spi_read(2)); //0x0000_0011
+        //gpio_spi_write(2, 0xc5);
+        //_DEBUG("REG[2] Write Value = 0xc5, Read Value = 0x%0x", gpio_spi_read(2)); //0x0000_0011
+        //gpio_spi_write(2, 0xc3);
 }
 
 void si3050_pcm_dev_drv_init(SPS_SYSTEM_INFO_T *sps)
@@ -244,28 +244,15 @@ void si3050_sw_reset(SPS_SYSTEM_INFO_T *sps)
 }
 
 
-void si3050_hw_reset(void)
+void Si3050_Pin_Reset(void)
 {
         usleep(1000);
         set_reset_pin_low(); // RESET
         usleep(50*1000);
         usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);      
-        //sleep(1);
         set_reset_pin_high(); // RESET
         usleep(50*1000);
         usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
 }
 
 
@@ -550,9 +537,13 @@ void Si3050_Clear_Lowpwr_Path(void)
 
 
 void Modem_DialTelNum(char dial_num)
-{
-
+{        
         _DEBUG("Dial Number :  %c",dial_num);
+
+        //config Si3050
+
+        // transfer dial number .wav data to Si3050 pcm port
+        
         return ;
 }
 
@@ -561,10 +552,13 @@ void XW_Si3050_DAA_System_Init(void)
     //unsigned char regCfg = 0;
 
     SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
-    //si3050_hw_reset(); //reset for power up 
+
+    Si3050_Pin_Reset();
+    Si3050_Hw_Reset();    
     _DEBUG("Reset si3050 complete...");
 
-    
+    Si3050_Hw_Init(1); //reset for power up 
+    si3050_pcm_dev_drv_init(DTSystemInfo);
     
     // Check the Version to make sure SPI Conmunication is OK
     si3050_get_ver_info();

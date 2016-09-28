@@ -169,8 +169,7 @@ void *XW_ManagePthread_GetPthreadState(U8_T pthread_id, U8_T channel)
 **·µ»ØÖµ:
 *******************************************************************************
 ****************************/
-bool XW_ManagePthread_ReadSignal(PTHREAD_BUF *rbuf, PTHREAD_ID thread_num, 
-bool wait)
+bool XW_ManagePthread_ReadSignal(PTHREAD_BUF *rbuf, PTHREAD_ID thread_num, bool wait)
 {
     bool    b_valid = false;
 
@@ -204,8 +203,7 @@ bool XW_ManagePthread_SendSignal(PTHREAD_BUF *sbuf, PTHREAD_ID thread_num)
     managePthread.g_pthread_info[thread_num] = WRITE_FLAG;
     if(sbuf)
     {
-        memcpy((PTHREAD_BUF *)&managePthread.g_pthread_buf[thread_num], (
-PTHREAD_BUF *)sbuf, sizeof(PTHREAD_BUF));
+        memcpy((PTHREAD_BUF *)&managePthread.g_pthread_buf[thread_num], (PTHREAD_BUF *)sbuf, sizeof(PTHREAD_BUF));
     }
     pthread_mutex_unlock(&managePthread.g_pthread_mutex[thread_num]);
     pthread_cond_signal(&managePthread.g_pthread_cond[thread_num]);
