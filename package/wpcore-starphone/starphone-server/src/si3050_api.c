@@ -161,41 +161,28 @@ void si3050_pcm_loopback(void)
 void si3050_get_ver_info(void)
 {
         unsigned char sys_ver_val = 0x00;
-        unsigned char line_ver_val = 0x00;
+        char line_device[4][5] = {"UNKN", "3018", "UNKN", "3019"};
         
-        _DEBUG("Get si3050 infomation Start ...");        
-        
-        sys_ver_val = gpio_spi_read(SI3050_REG_CHIP_A_REV);        
-        //line_ver_val = gpio_spi_read(13);
-        
-        _DEBUG("\n");
-        _DEBUG("Read reg[11] Value = 0x%0x",sys_ver_val);
-        _DEBUG("Read reg[13] Value = 0x%0x",line_ver_val);
-        
-        switch((sys_ver_val & 0xF0) >> 4)
-        {
-                case 0x01:
-                         _DEBUG("Line-Side ID[si3018]: 0x01");
-                        break;
-                case 0x03:
-                        _DEBUG("Line-Side ID[si3019]: 0x03");
-                        break;
-                case 0x04:
-                        _DEBUG("Line-Side ID[si3011]: 0x04");
-                        break;
-                default:
-                        _DEBUG("Line-Side ID[Unknown]: 0x%0x ",(sys_ver_val & 0xF0) >> 4); 
-                        break;
-        }
-        
-        _DEBUG("System-Side Revision: 0x%0x",(sys_ver_val & 0x0F));       
-        _DEBUG("Line-Side Device Revision: 0x%0x",((line_ver_val & 0x3C) >> 2));
-        _DEBUG("\n");
+        _DEBUG("Get si3050 infomation Start ...");     
 
-        //_DEBUG("REG[2] Default = 0x03, Read Value = 0x%0x", gpio_spi_read(2)); //0x0000_0011
-        //gpio_spi_write(2, 0xc5);
-        //_DEBUG("REG[2] Write Value = 0xc5, Read Value = 0x%0x", gpio_spi_read(2)); //0x0000_0011
-        //gpio_spi_write(2, 0xc3);
+         sys_ver_val = gpio_spi_read(SI3050_REG_CHIP_A_REV);    
+
+	if((sys_ver_val>>4) > 3)
+	{
+		sys_ver_val &=0xF;
+		_ERROR("SI3050 dev id error %x\n",sys_ver_val);	
+	}
+
+	_DEBUG("Detected SI3050 revision %u and a %s \n", 
+                        ((sys_ver_val)&0xF), line_device[(sys_ver_val>>4)&0xF]);
+    
+	/* This is a simple method of verifying if the deivce is alive */
+	if(sys_ver_val == 0)
+	{
+		return HI_FALSE;
+	}
+        
+       return HI_TRUE;
 }
 
 void si3050_pcm_dev_drv_init(SPS_SYSTEM_INFO_T *sps)
@@ -438,7 +425,7 @@ bool Si3050_Hw_Init(unsigned short timeslot)
 *
 ********************************************************************************
 * DESCRIPTION:    Toggle the hook switch
-*
+* turn off off-hook bit 
 *******************************************************************************/
 void Si3050_Set_Hook(bool si3050_off_hook)
 {
@@ -536,7 +523,7 @@ void Si3050_Clear_Lowpwr_Path(void)
 }
 
 
-void Modem_DialTelNum(char dial_num)
+void Si3050_Dial_PhoneNum(char dial_num)
 {        
         _DEBUG("Dial Number :  %c",dial_num);
 
@@ -646,7 +633,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
                         unsigned char i = 0;
                         char *dial_str =&send_buf.m_buffer[5];
                         for(i = 0; i < (strlen(send_buf.m_buffer)-6); i++)
-                                Modem_DialTelNum(dial_str[i]);
+                                Si3050_Dial_PhoneNum(dial_str[i]);
                         
         		//pthread_t id;
         		//_pthread_create(&id, (void*)off_hook, &arg_hook);
