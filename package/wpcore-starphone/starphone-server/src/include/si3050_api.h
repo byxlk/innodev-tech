@@ -118,15 +118,15 @@ void si3050_pcm_loopback(void);
 
 
 ///////////////////////////////////////////////////////
-void si3050_get_ver_info(void);
+void Si3050_Get_VersionInfo(void);
 
 void Si3050_Pin_Reset(void);
 
-void si3050_sw_reset(SPS_SYSTEM_INFO_T *sps);
+//void si3050_sw_reset(SPS_SYSTEM_INFO_T *sps);
 
 void XW_Si3050_DAA_System_Init(void);
 
-void si3050_pcm_dev_drv_init(SPS_SYSTEM_INFO_T *sps);
+void Si3050_Pcm_DriverInit(SPS_SYSTEM_INFO_T *sps);
 
 void *XW_Pthread_ModemCtrlDeamon(void *args);
 

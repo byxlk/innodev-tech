@@ -158,7 +158,7 @@ void si3050_pcm_loopback(void)
 ///////////////////////////////////////////////////////////////////
 // SPI CONTROL
 ///////////////////////////////////////////////////////////////////
-void si3050_get_ver_info(void)
+void Si3050_Get_VersionInfo(void)
 {
         unsigned char sys_ver_val = 0x00;
         char line_device[4][5] = {"UNKN", "3018", "UNKN", "3019"};
@@ -185,7 +185,7 @@ void si3050_get_ver_info(void)
        return HI_TRUE;
 }
 
-void si3050_pcm_dev_drv_init(SPS_SYSTEM_INFO_T *sps)
+void Si3050_Pcm_DriverInit(SPS_SYSTEM_INFO_T *sps)
 {
     sps->si3050_pcm_out = si3050_get_pcm_out();
     sps->si3050_pcm_in = si3050_get_pcm_in();
@@ -199,6 +199,7 @@ void si3050_pcm_dev_drv_init(SPS_SYSTEM_INFO_T *sps)
 
 }
 
+#if 0
 void si3050_sw_reset(SPS_SYSTEM_INFO_T *sps)
 {
     unsigned char regCfg = 0;
@@ -229,7 +230,7 @@ void si3050_sw_reset(SPS_SYSTEM_INFO_T *sps)
     gpio_spi_write(31, regCfg);    
 
 }
-
+#endif
 
 void Si3050_Pin_Reset(void)
 {
@@ -348,7 +349,7 @@ bool Si3050_Hw_Reset(void)
 * DESCRIPTION:    Perform hardware initialization of PCM interface.
 *
 *******************************************************************************/
-void Si3050_Pcm_Init(unsigned short timeslot)
+void Si3050_Pcm_PortInit(unsigned short timeslot)
 {
     unsigned short  pcm_offset;
     unsigned char   pcm_mode;
@@ -364,61 +365,6 @@ void Si3050_Pcm_Init(unsigned short timeslot)
     gpio_spi_write(SI3050_REG_PCM_SPI_MODE_SELECT, pcm_mode);//reg33
 
 }
-
-
-
-/*------------------------------------------------------------------------------*/
-/* FUNCTION:    si3050_hw_init                                                  */
-/*------------------------------------------------------------------------------*/
-/* DESCRIPTION:    Perform hardware initialization of TID analog interface.     */
-/*------------------------------------------------------------------------------*/
-
-bool Si3050_Hw_Init(unsigned short timeslot)
-{
-
-	unsigned char device_id;
-	//int i,j;
-
-	/* Initialize and power up DAA */
-	if(Si3050_Hw_Reset() == HI_FALSE)
-	{
-		return HI_FALSE;
-	}
-
-
-	device_id = gpio_spi_read(SI3050_REG_CHIP_A_REV);//reg11
-
-	if((device_id>>4) > 3)
-	{
-		device_id &=0xF;
-		//j=sprintf(str,"\nSI3050 dev id error %x on tcid %u\n",device_id,tcid);
-		//ser_Write(str,j);
-		return HI_FALSE;
-	}
-
-
-	/* This is a simple method of verifying if the deivce is alive */
-	if(device_id == 0)
-	{
-		//j=sprintf(str,"\nDetected SI3050 revision %u and a %s on tcid %u\n", ((device_id)&0xF), line_device[(device_id>>4)&0xF],tcid);
-		//ser_Write(str,j);
-		return HI_FALSE;
-	}
-
-	/* enable PCM and assign timeslot for PCM */
-
-	Si3050_Pcm_Init(timeslot);
-
-	/* Enable intterupt */
-	gpio_spi_write(SI3050_REG_CONTROL2, 0x83); //0x87
-	//j=sprintf(str,"\nFXO_ProSLIC device %d initialized", tcid);
-	//ser_Write(str,j);
-
-	return HI_TRUE;
-}
-
-
-
 
 /*******************************************************************************
 * FUNCTION:     si3050_set_hook
@@ -528,30 +474,45 @@ void Si3050_Dial_PhoneNum(char dial_num)
         _DEBUG("Dial Number :  %c",dial_num);
 
         //config Si3050
+        Si3050_Set_Hook(HI_TRUE);
 
         // transfer dial number .wav data to Si3050 pcm port
         
         return ;
 }
 
+/*------------------------------------------------------------------------------*/
+/* FUNCTION:    XW_Si3050_DAA_System_Init                                                  */
+/*------------------------------------------------------------------------------*/
+/* DESCRIPTION:    Perform hardware initialization of TID analog interface.     */
+/*------------------------------------------------------------------------------*/
 void XW_Si3050_DAA_System_Init(void)
 {
-    //unsigned char regCfg = 0;
+        //unsigned char regCfg = 0;
 
-    SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
+        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
 
-    Si3050_Pin_Reset();
-    Si3050_Hw_Reset();    
-    _DEBUG("Reset si3050 complete...");
+        // reset si3050 with set low level for reset pin
+        Si3050_Pin_Reset();
+            
+        /* Initialize and power up DAA */
+	if(Si3050_Hw_Reset() == HI_FALSE)
+	{
+		return HI_FALSE;
+	}	
+        _DEBUG("Reset si3050 complete...");
+        
+        // Check the Version to make sure SPI Conmunication is OK
+        Si3050_Get_VersionInfo();
+        
+	/* enable PCM and assign timeslot for PCM */
+	Si3050_Pcm_PortInit(1);
+       Si3050_Pcm_DriverInit(DTSystemInfo);
 
-    Si3050_Hw_Init(1); //reset for power up 
-    si3050_pcm_dev_drv_init(DTSystemInfo);
-    
-    // Check the Version to make sure SPI Conmunication is OK
-    si3050_get_ver_info();
-
-    
-    //Si3050_Power_Up_Si3019();
+	 /* Enable intterupt */
+	 gpio_spi_write(SI3050_REG_CONTROL2, 0x83); //0x87
+ 
+        //Si3050_Power_Up_Si3019();
 
     return ;
 }
