@@ -1,6 +1,6 @@
 ﻿##1.下载编译源码
 ```
-git clone https://github.com/byxlk/openwrt-rt5350.git
+https://github.com/byxlk/innodev-tech.git
 ```
 
 ###切换分支
