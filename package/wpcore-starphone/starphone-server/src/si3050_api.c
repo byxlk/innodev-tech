@@ -163,7 +163,7 @@ void Si3050_Get_VersionInfo(void)
         unsigned char sys_ver_val = 0x00;
         char line_device[4][5] = {"UNKN", "3018", "UNKN", "3019"};
         
-        _DEBUG("Get si3050 infomation Start ...");     
+        _DEBUG("Get si3050 version infomation Start ...");     
 
          sys_ver_val = gpio_spi_read(SI3050_REG_CHIP_A_REV);    
 
@@ -173,7 +173,7 @@ void Si3050_Get_VersionInfo(void)
 		_ERROR("SI3050 dev id error %x\n",sys_ver_val);	
 	}
 
-	_DEBUG("Detected SI3050 revision %u and a %s \n", 
+        _DEBUG("Detected SI3050 revision %u and Line-side device is %s \n",  
                         ((sys_ver_val)&0xF), line_device[(sys_ver_val>>4)&0xF]);
     
 	/* This is a simple method of verifying if the deivce is alive */
@@ -470,8 +470,30 @@ void Si3050_Clear_Lowpwr_Path(void)
 
 
 void Si3050_Dial_PhoneNum(char dial_num)
-{        
-        _DEBUG("Dial Number :  %c",dial_num);
+{       
+	switch(dial_num)
+        {
+		case '0':
+		case '1': 
+		case '2': 
+		case '3': 
+		case '4': 
+		case '5': 
+		case '6': 
+		case '7': 
+		case '8': 
+		case '9': 
+		case 'A': 
+		case 'B': 
+		case 'C': 
+		case 'D': 
+		case 'E': 
+		case 'F': 
+        		_DEBUG("Dial Number :  %c",dial_num);
+			break;
+		default:
+			return ;
+	}
 
         //config Si3050
         Si3050_Set_Hook(HI_TRUE);
@@ -507,14 +529,14 @@ void XW_Si3050_DAA_System_Init(void)
         
 	/* enable PCM and assign timeslot for PCM */
 	Si3050_Pcm_PortInit(1);
-       Si3050_Pcm_DriverInit(DTSystemInfo);
+        Si3050_Pcm_DriverInit(DTSystemInfo);
 
-	 /* Enable intterupt */
-	 gpio_spi_write(SI3050_REG_CONTROL2, 0x83); //0x87
+	/* Enable intterupt */
+	gpio_spi_write(SI3050_REG_CONTROL2, 0x83); //0x87
  
         //Si3050_Power_Up_Si3019();
 
-    return ;
+        return ;
 }
 
 void *XW_Pthread_ModemCtrlDeamon(void *args)

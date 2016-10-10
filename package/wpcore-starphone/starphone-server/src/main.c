@@ -16,7 +16,7 @@ SPS_SYSTEM_INFO_T  *XW_Global_InitSystemInfo(void)
 int main(int argc, char **argv) 
 {	
     char key;
-    _DEBUG("Compile Time:%s",__TIME__);
+    _DEBUG("\nCompile Time:  %s - %s\n",__DATE__ ,__TIME__);
     _DEBUG("Perper memory init ...");
     
     //启动各种系统应用
