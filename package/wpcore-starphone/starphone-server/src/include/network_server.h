@@ -12,6 +12,8 @@ typedef struct _thread_arg {
 	int busy; // 是否外線通話中
 } thread_arg;
 
+int sock_recv(int connfd, void* buf, int size);
+int sock_send(int connfd, void* buf, int size);
 
 void XW_pthread_create(pthread_t *id, void*(routine)(void*), void *arg) ;
 void *XW_Pthread_Udp_Broadcast(void *args);

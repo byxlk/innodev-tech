@@ -179,10 +179,10 @@ void Si3050_Get_VersionInfo(void)
 	/* This is a simple method of verifying if the deivce is alive */
 	if(sys_ver_val == 0)
 	{
-		return HI_FALSE;
+		return ;
 	}
         
-       return HI_TRUE;
+       return ;
 }
 
 void Si3050_Pcm_DriverInit(SPS_SYSTEM_INFO_T *sps)
@@ -275,7 +275,7 @@ bool Si3050_Hw_Reset(void)
 
 	/* Read FTD */
 	data=gpio_spi_read(SI3050_REG_LINE_STATUS);//reg12
-	while((!(data & 0x40) | data==0xff)
+	while((!(data & 0x40) || data==0xff)
 		&& (loop_cnt < SI3050_MAX_FTD_RETRY))
 	{
 		usleep(2*1000);
@@ -468,38 +468,37 @@ void Si3050_Clear_Lowpwr_Path(void)
     gpio_spi_write(SI3050_REG_DAA_CONTROL1, 0x00);
 }
 
+void Si3050_Conv_DialNum_To_DtmfData(char dial_num, unsigned char *buf)
+{
+	
+
+	return ;
+}
 
 void Si3050_Dial_PhoneNum(char dial_num)
-{       
-	switch(dial_num)
-        {
-		case '0':
-		case '1': 
-		case '2': 
-		case '3': 
-		case '4': 
-		case '5': 
-		case '6': 
-		case '7': 
-		case '8': 
-		case '9': 
-		case 'A': 
-		case 'B': 
-		case 'C': 
-		case 'D': 
-		case 'E': 
-		case 'F': 
-        		_DEBUG("Dial Number :  %c",dial_num);
-			break;
-		default:
-			return ;
-	}
+{
+	int retVal = 0;
+	unsigned char pcm_rw_buf[128];
+	char *dtmf_sound = "0123456789abcdefABCDEF#*";
+
+	SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
+
+        if((strchr(dtmf_sound, dial_num) -dtmf_sound) > strlen(dtmf_sound))
+        	return ;
+
+        _DEBUG("Dial Number :  %c",dial_num);
 
         //config Si3050
         Si3050_Set_Hook(HI_TRUE);
 
         // transfer dial number .wav data to Si3050 pcm port
-        
+        Si3050_Conv_DialNum_To_DtmfData(dial_num, pcm_rw_buf);
+	retVal = pcm_write(DTSystemInfo->si3050_pcm_out, pcm_rw_buf, sizeof(pcm_rw_buf));
+	if(!retVal)
+	{
+		_ERROR("pcm_write return value(ErrNo:%d) error !",retVal);
+	}
+
         return ;
 }
 
@@ -518,9 +517,9 @@ void XW_Si3050_DAA_System_Init(void)
         Si3050_Pin_Reset();
             
         /* Initialize and power up DAA */
-	if(Si3050_Hw_Reset() == HI_FALSE)
+	if(Si3050_Hw_Reset() == 0)
 	{
-		return HI_FALSE;
+		return ;
 	}	
         _DEBUG("Reset si3050 complete...");
         
