@@ -14,6 +14,7 @@ TARGET = starphone-server
 
 SOURCES = \
 	pcm.c \
+	wave.c \
 	gpio-spi.c \
 	si3050_api.c \
 	network_server.c \

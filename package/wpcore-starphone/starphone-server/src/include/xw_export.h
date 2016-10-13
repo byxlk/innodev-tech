@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "pcm.h"
+#include "wave.h"
 #include "si3050_api.h"
 
 #include "gpio-spi.h"
