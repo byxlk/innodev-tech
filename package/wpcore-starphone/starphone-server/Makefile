@@ -43,6 +43,8 @@ endef
 define Package/starphone-server/install
 	$(INSTALL_DIR) $(1)/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/bin/
+	$(INSTALL_DIR) $(1)/root/starphone/res
+	$(CP) $(PKG_BUILD_DIR)/res/*.wav $(1)/root/starphone/res/
 endef
 
 $(eval $(call BuildPackage,starphone-server))
