@@ -14,7 +14,7 @@
               2 - file type not supported
               3 - memory full
 */
-int load_wave(char *file, FORMAT *fmt, void **data, int *data_size)
+int load_wave(char *file, FORMAT *fmt, void *data, int *data_size)
 {
   FILE *fp;
   char id[5];
@@ -65,11 +65,11 @@ int load_wave(char *file, FORMAT *fmt, void **data, int *data_size)
     {
       DATA = 1;
       *data_size = size;
-      *data = (void *)malloc(size);
-      if(*data == NULL)
+      data = (void *)malloc(size);
+      if(data == NULL)
         return 3;
 
-      b = fread(*data, 1, size, fp);
+      b = fread(data, 1, size, fp);
 /*     printf ("b=%d\n", b); */
     }
     else if(strncmp(id, "LIST", 4) ==0)

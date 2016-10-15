@@ -12,7 +12,7 @@ typedef struct {
 
 } FORMAT;
 
-int load_wave(char *file, FORMAT *fmt, void **data, int *data_size);
+int load_wave(char *file, FORMAT *fmt, void *data, int *data_size);
 int save_wave(char *file, FORMAT *fmt, void *data, int data_size);
 
 #endif

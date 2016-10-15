@@ -473,8 +473,8 @@ void Si3050_Dial_PhoneNum(char dial_num)
 {
 	int retVal = 0;
         int pcm_buf_size = 0;
-        char wav_file[32];
-	unsigned char *pcm_rw_buf = NULL;
+        char wav_file[32] = {'\0'};
+	void *pcm_rw_buf = NULL;
 	char *dtmf_sound = "0123456789abcdefABCDEF#*";
         
 	FORMAT wav_fmt;
@@ -491,14 +491,18 @@ void Si3050_Dial_PhoneNum(char dial_num)
         Si3050_Set_Hook(HI_TRUE);
 
 	// Create wav sound file path
-        sprintf(wav_file, "/starphone/res/%s.wav",dial_num);
-        _DEBUG("wav file path: %s",wav_file);
+        sprintf(wav_file, "/root/starphone/res/%c.wav", dial_num);
+	//if(access(wav_file, 0) < 0)
+	//{
+	//	_ERROR("dtmf sound file not found: %s",wav_file);
+	//}
+        _DEBUG("found wav file: %s",wav_file);
 
         // Load wav sound file and return the pcm data to buffer
-        load_wave(wav_file, &wav_fmt, (void *)&pcm_rw_buf, pcm_buf_size);
-        _DEBUG("[wav file info] FormatTag: %s Channel: %d SamplePerSec:%ld \
-                BitPerSample: %ld \nbuf_adde: %p buf_size: %ld",
-                wav_fmt.wFormatTag, wav_fmt.wChannels, wav_fmt.dwSamplesPerSec,
+        load_wave(wav_file, &wav_fmt, pcm_rw_buf, &pcm_buf_size);
+        _DEBUG("[wav file info] FormatTag: %s Channel: %d SamplePerSec:%ld",
+                wav_fmt.wFormatTag, wav_fmt.wChannels, wav_fmt.dwSamplesPerSec);
+        _DEBUG("[wav file info] BitPerSample: %ld buf_addr: %p buf_size: %ld",
                 wav_fmt.wBitsPerSample, pcm_rw_buf, pcm_buf_size);        
 
 	// transfer dial number .wav data to Si3050 pcm port
