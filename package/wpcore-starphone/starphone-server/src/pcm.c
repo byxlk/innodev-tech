@@ -404,6 +404,7 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
     x.buf = (void*)data;
     x.frames = count / (pcm->config.channels *
                         pcm_format_to_bits(pcm->config.format) / 8);
+    printf("pcm buf addr: 0x%x frames: %d",x.buf, x.frames);
 
     for (;;) {
         if (!pcm->running) {

@@ -39,7 +39,7 @@ void si3050_generate_sine(int freq, int volume)
 
 void si3050_pcm_init_config(struct pcm_config* config)
 {
-    unsigned int channels = 2;
+    unsigned int channels = CHANNEL;
     unsigned int rate = SAMPLE_RATE;
     //unsigned int bits = 16;
     unsigned int period_size = 128;
@@ -193,9 +193,10 @@ void Si3050_Pcm_DriverInit(SPS_SYSTEM_INFO_T *sps)
     if (!sps->si3050_pcm_out || !sps->si3050_pcm_in)
         return;
     
-    printf("buffer size:%d %d\n", 
+    printf("[buffer size] OUT: %d IN: %d [fd value] OUT: %d IN: %s\n", 
         pcm_get_buffer_size(sps->si3050_pcm_out), 
-        pcm_get_buffer_size(sps->si3050_pcm_in));    
+        pcm_get_buffer_size(sps->si3050_pcm_in),
+	sps->si3050_pcm_out->fd, sps->si3050_pcm_in->fd);    
 
 }
 
@@ -275,7 +276,7 @@ bool Si3050_Hw_Reset(void)
 
 	/* Read FTD */
 	data=gpio_spi_read(SI3050_REG_LINE_STATUS);//reg12
-	while((!(data & 0x40) || data==0xff)
+	while(((!(data & 0x40)) || data==0xff)
 		&& (loop_cnt < SI3050_MAX_FTD_RETRY))
 	{
 		usleep(2*1000);
@@ -286,14 +287,15 @@ bool Si3050_Hw_Reset(void)
 	{
 		//j=sprintf(str,"\nFailed to get FTD register sync\n");
 		//ser_Write(str,j);
+		_ERROR("Try get line status %d times were faild... ",loop_cnt);
 		return 0;
 	}
 
 
-		ac_termination_data = 0x00;
-		dc_termination_data = 0xc0;
-		international_control1_data = 0x00;
-		daa_control5_data = 0x20;
+	ac_termination_data = 0x00;
+	dc_termination_data = 0xc0;
+	international_control1_data = 0x00;
+	daa_control5_data = 0x20;
 
 
 	/* Set AC termination */
@@ -474,13 +476,18 @@ void Si3050_Dial_PhoneNum(char dial_num)
 	int retVal = 0;
         int pcm_buf_size = 0;
         char wav_file[32] = {'\0'};
-	void *pcm_rw_buf = NULL;
+	char *pcm_rw_buf = NULL;
 	char *dtmf_sound = "0123456789abcdefABCDEF#*";
         
-	FORMAT wav_fmt;
+	WAV_T *wav = NULL;
 
 
 	SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
+	if(DTSystemInfo->si3050_pcm_out == NULL)
+	{
+		_ERROR("DTSystemInfo->si3050_pcm_out is NULL");
+		return ;
+	}
 
         if((strchr(dtmf_sound, dial_num) -dtmf_sound) > strlen(dtmf_sound))
         	return ;
@@ -499,19 +506,41 @@ void Si3050_Dial_PhoneNum(char dial_num)
         _DEBUG("found wav file: %s",wav_file);
 
         // Load wav sound file and return the pcm data to buffer
-        load_wave(wav_file, &wav_fmt, pcm_rw_buf, &pcm_buf_size);
-        _DEBUG("[wav file info] FormatTag: %s Channel: %d SamplePerSec:%ld",
-                wav_fmt.wFormatTag, wav_fmt.wChannels, wav_fmt.dwSamplesPerSec);
-        _DEBUG("[wav file info] BitPerSample: %ld buf_addr: %p buf_size: %ld",
-                wav_fmt.wBitsPerSample, pcm_rw_buf, pcm_buf_size);        
+        //load_wave(wav_file, &wav_fmt, pcm_rw_buf, &pcm_buf_size);
+        //_DEBUG("[wav file info] FormatTag: %s Channel: %d SamplePerSec:%ld",
+        //        wav_fmt.wFormatTag, wav_fmt.wChannels, wav_fmt.dwSamplesPerSec);
+        //_DEBUG("[wav file info] BitPerSample: %ld buf_addr: %p buf_size: %ld",
+        //        wav_fmt.wBitsPerSample, pcm_rw_buf, pcm_buf_size);        
 
+	wav = wav_open(wav_file);
+	if(NULL == wav)
+	{
+		_ERROR("open wav file %s faild...", wav_file);
+		wav_close(&wav);
+	}
+	wav_dump(wav);
+
+	wav_rewind(wav);
+
+	pcm_buf_size = wav->file_size;
+	pcm_rw_buf = (char *)malloc(wav->file_size);
+	if(pcm_rw_buf == NULL)
+	{
+		_ERROR("malloc pcm data buffer faild..");
+		wav_close(&wav);
+		return ;
+	}	
+	_DEBUG("pcm data buf addr: 0x%x size: %d Byte",pcm_rw_buf, pcm_buf_size);
+	
 	// transfer dial number .wav data to Si3050 pcm port
+	_DEBUG("[pcm fd] OUT_fd: %d",DTSystemInfo->si3050_pcm_out->fd);
 	retVal = pcm_write(DTSystemInfo->si3050_pcm_out, pcm_rw_buf, pcm_buf_size);
 	if(!retVal)
 	{
 		_ERROR("pcm_write return value(ErrNo:%d) error !",retVal);
 	}
 
+	wav_close(&wav);
         return ;
 }
 
@@ -529,13 +558,14 @@ void XW_Si3050_DAA_System_Init(void)
 
         // reset si3050 with set low level for reset pin
         Si3050_Pin_Reset();
-            
+        _DEBUG("Reset si3050 hardware complete...");
+    
         /* Initialize and power up DAA */
 	if(Si3050_Hw_Reset() == 0)
 	{
 		return ;
 	}	
-        _DEBUG("Reset si3050 complete...");
+        _DEBUG("Reset si3050 softare complete...");
         
         // Check the Version to make sure SPI Conmunication is OK
         Si3050_Get_VersionInfo();
