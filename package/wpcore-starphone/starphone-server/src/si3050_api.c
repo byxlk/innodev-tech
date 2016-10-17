@@ -185,19 +185,28 @@ void Si3050_Get_VersionInfo(void)
        return ;
 }
 
-void Si3050_Pcm_DriverInit(SPS_SYSTEM_INFO_T *sps)
+int Si3050_Pcm_DriverInit(SPS_SYSTEM_INFO_T *sps)
 {
     sps->si3050_pcm_out = si3050_get_pcm_out();
+    if (sps->si3050_pcm_out == NULL)
+    {
+        _ERROR("open si3050 pcm out device faild ...");
+        return -1;
+    }
+
     sps->si3050_pcm_in = si3050_get_pcm_in();
+    if (sps->si3050_pcm_in == NULL)
+    {
+        _ERROR("open si3050 pcm in device faild ...");
+        return -1;
+    }
     
-    if (!sps->si3050_pcm_out || !sps->si3050_pcm_in)
-        return;
-    
-    printf("[buffer size] OUT: %d IN: %d [fd value] OUT: %d IN: %s\n", 
+    printf("[buffer size] OUT: %d IN: %d [fd value] OUT: %d IN: %d\n", 
         pcm_get_buffer_size(sps->si3050_pcm_out), 
         pcm_get_buffer_size(sps->si3050_pcm_in),
-	sps->si3050_pcm_out->fd, sps->si3050_pcm_in->fd);    
+    	sps->si3050_pcm_out->fd, sps->si3050_pcm_in->fd);    
 
+    return 0;
 }
 
 #if 0
@@ -283,6 +292,7 @@ bool Si3050_Hw_Reset(void)
 		loop_cnt++;
 		data=gpio_spi_read(SI3050_REG_LINE_STATUS);
 	}
+        _DEBUG("read line status data = 0x%x",data);
 	if(loop_cnt >= SI3050_MAX_FTD_RETRY)
 	{
 		//j=sprintf(str,"\nFailed to get FTD register sync\n");
@@ -535,7 +545,7 @@ void Si3050_Dial_PhoneNum(char dial_num)
 	// transfer dial number .wav data to Si3050 pcm port
 	_DEBUG("[pcm fd] OUT_fd: %d",DTSystemInfo->si3050_pcm_out->fd);
 	retVal = pcm_write(DTSystemInfo->si3050_pcm_out, pcm_rw_buf, pcm_buf_size);
-	if(!retVal)
+	if(retVal < 0)
 	{
 		_ERROR("pcm_write return value(ErrNo:%d) error !",retVal);
 	}
@@ -550,7 +560,7 @@ void Si3050_Dial_PhoneNum(char dial_num)
 /*------------------------------------------------------------------------------*/
 /* DESCRIPTION:    Perform hardware initialization of TID analog interface.     */
 /*------------------------------------------------------------------------------*/
-void XW_Si3050_DAA_System_Init(void)
+int XW_Si3050_DAA_System_Init(void)
 {
         //unsigned char regCfg = 0;
 
@@ -560,26 +570,32 @@ void XW_Si3050_DAA_System_Init(void)
         Si3050_Pin_Reset();
         _DEBUG("Reset si3050 hardware complete...");
     
-        /* Initialize and power up DAA */
-	if(Si3050_Hw_Reset() == 0)
-	{
-		return ;
-	}	
-        _DEBUG("Reset si3050 softare complete...");
-        
         // Check the Version to make sure SPI Conmunication is OK
         Si3050_Get_VersionInfo();
         
+	/* Initialize and power up DAA */
+	if(Si3050_Hw_Reset() == 0)
+	{
+            _ERROR("si3050 config reset register value faild...");
+	    return -1;
+	}	
+        _DEBUG("Reset si3050 softare complete...");
+        
+        
 	/* enable PCM and assign timeslot for PCM */
 	Si3050_Pcm_PortInit(1);
-        Si3050_Pcm_DriverInit(DTSystemInfo);
+        if(Si3050_Pcm_DriverInit(DTSystemInfo) < 0)
+        {		
+            _ERROR("si3050 pcm driver devices init faild...");
+	    return -1;
+	}
 
 	/* Enable intterupt */
 	gpio_spi_write(SI3050_REG_CONTROL2, 0x83); //0x87
  
         //Si3050_Power_Up_Si3019();
 
-        return ;
+        return 0;
 }
 
 void *XW_Pthread_ModemCtrlDeamon(void *args)

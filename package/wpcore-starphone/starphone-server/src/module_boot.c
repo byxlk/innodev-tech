@@ -56,6 +56,7 @@ void XW_SignalDo_handleSignal(int s)
 ****************************/
 int XW_SysModuleBoot(void)
 {
+    int retVal = 0;
     SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
     /*初始化系统信息*/;
     //DTSystemInfo->
@@ -67,8 +68,11 @@ int XW_SysModuleBoot(void)
 
     XW_MsgQueue_Create();/*创建消息队列/bin/ls*/
 
-    XW_Si3050_DAA_System_Init();/*设置Si3050系统初始化*/
-
+    retVal = XW_Si3050_DAA_System_Init();/*设置Si3050系统初始化*/
+    if(retVal < 0)
+    {
+        return retVal;
+    }
 
     // Thread start run ...
     ManagePthread_UdpBroadcast();/*创建UDP 广播IP线程*/
@@ -80,7 +84,7 @@ int XW_SysModuleBoot(void)
     //ManagePthread_UsbDeviceHotplug();/*USB热插拔检测*/
     //XW_Update_CreateUpdatePthread();/* 升级处理线程 */
 
-    return 0;
+    return retVal;
 }
 /******************************************************************************
 *****************************

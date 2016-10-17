@@ -627,8 +627,9 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 
     pcm->config = *config;
     
-    printf("[%06d]%s: CHN=%d RATE=%d PERIOD_SIZE=%d PERIOD_COUNT=%d FORMAT=%d\n", 
-        __LINE__,__FUNCTION__ , config->channels,config->rate,config->period_size, 
+    printf("[%6d]%s - %s: CHN=%d RATE=%d PERIOD_SIZE=%d PERIOD_COUNT=%d FORMAT=%d\n", 
+              __LINE__, __FUNCTION__, (flags == PCM_IN)? "in" : "out",
+              config->channels,config->rate,config->period_size, 
               config->period_count,config->format);
 
     snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,

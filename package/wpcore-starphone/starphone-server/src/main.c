@@ -16,12 +16,19 @@ SPS_SYSTEM_INFO_T  *XW_Global_InitSystemInfo(void)
 int main(int argc, char **argv) 
 {	
     char key;
+    int retVal = 0;
+
     _DEBUG("\nCompile Time:  %s - %s\n",__DATE__ ,__TIME__);
     _DEBUG("Perper memory init ...");
     
     //启动各种系统应用
     memset(&gSystemInfo, 0x0, sizeof(SPS_SYSTEM_INFO_T));
-    XW_SysModuleBoot();
+    retVal = XW_SysModuleBoot();
+    if(retVal < 0)
+    {
+        _DEBUG("system exit !");
+        return 0;
+    }
 
 	//等待终端退出指令
     _DEBUG("system boot complete ,please char  q toexit system !");
