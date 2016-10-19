@@ -12,7 +12,18 @@
 
 #include "include/xw_export.h"
 
+unsigned char tel_busy_status = 0; // value 1 means phone is busy 
 
+void set_phone_busy_status(unsigned char busy)
+{
+    tel_busy_status = busy;
+    _DEBUG("phone status: %s",busy ? "Busy now" : "No using");
+}
+
+unsigned char get_phone_busy_status(void)
+{
+    return tel_busy_status;
+}
 
 ///////////////////////////////////////////////////////////////////
 //  PCM INTERFACE
@@ -248,9 +259,15 @@ void Si3050_Pin_Reset(void)
         set_reset_pin_low(); // RESET
         usleep(50*1000);
         usleep(50*1000);
+        usleep(50*1000);
+        //usleep(50*1000);
+        //usleep(50*1000);
         set_reset_pin_high(); // RESET
         usleep(50*1000);
         usleep(50*1000);
+        usleep(50*1000);
+        //usleep(50*1000);
+        //usleep(50*1000);
 }
 
 
@@ -391,8 +408,11 @@ void Si3050_Set_Hook(bool si3050_off_hook)
     if(si3050_off_hook)
     {
         data = 0x1;
-	}
-	gpio_spi_write(SI3050_REG_DAA_CONTROL1, data);
+    }
+    set_phone_busy_status(data);
+    gpio_spi_write(SI3050_REG_DAA_CONTROL1, data);
+    
+    
 }
 
 /*******************************************************************************
@@ -551,6 +571,10 @@ void Si3050_Dial_PhoneNum(char dial_num)
 	}
 
 	wav_close(&wav);
+
+        usleep(50*1000);
+        usleep(50*1000);
+
         return ;
 }
 
@@ -647,43 +671,33 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		sock_send_msg = "This is help message\n";
         		//_send(send_buf.m_args->connfd, sock_send_msg, strlen(sock_send_msg));
         	}
-                else if(strcmp(send_buf.m_buffer, "hangup")==0) 
+                else if(strncmp(send_buf.m_buffer, "hangup", 6)==0) 
                 {        		
-                        if(pthread_client->busy == 1)
-                        {
-        		        //Modem_Hangup();
-        		        sock_send_msg ="ok\n";
-         		        pthread_client->busy = 0;
-        		        sock_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
-                        }
-                        else
-                        {
-                                continue;
-                        }
+        		//Modem_Hangup();
+                        Si3050_Set_Hook(0);
+        		sock_send_msg ="ok\n";
+         		set_phone_busy_status(0);
+        		sock_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
         	}
                 else if(strncmp(send_buf.m_buffer, "dial:", 5)==0)// dial:12345
                 { 
-        		if(pthread_client->busy == 1)
+        		if(get_phone_busy_status() == 1)
                         {
         			sock_send_msg = "busy\n"; //  關閉撥號狀態
         			sock_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
+                                _DEBUG("phone is busy now !");
         			continue;
         		}
-                        pthread_client->busy = 1;
+                        set_phone_busy_status(1);
 
                         //Parse dial number
                         unsigned char i = 0;
                         char *dial_str =&send_buf.m_buffer[5];
                         for(i = 0; i < (strlen(send_buf.m_buffer)-6); i++)
                                 Si3050_Dial_PhoneNum(dial_str[i]);
-                        
-        		//pthread_t id;
-        		//_pthread_create(&id, (void*)off_hook, &arg_hook);
-        		//pthread_join(id, NULL);
-        		//printf("dial ended, send on_hook\n");
-        		//sock_send_msg = "on_hook\n";
-        		//_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
-                        //pthread_client->busy = 0;
+                
+                        // if off-hook, then recv & send sound data to socket
+                                 
         	}
         	else if(strncmp(send_buf.m_buffer, "list", 4)==0)
                 {
