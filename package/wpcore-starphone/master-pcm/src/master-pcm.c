@@ -99,6 +99,7 @@
 
 
 #define PCM_DMA_DEBUG 0
+#define PCM_DMA_ERROR 1
 
 /* Debug INTERFACE INFORMATION */
 #if PCM_DMA_DEBUG
@@ -108,6 +109,11 @@ do{ \
             printk(msg); \
             printk("\n"); \
 }while(0)
+#else
+#define _DEBUG(msg...)
+#endif
+
+#if PCM_DMA_ERROR
 #define _ERROR(msg...) \
 do{ \
             printk("[ERROR][%s: %d] ",__FUNCTION__,__LINE__); \
@@ -115,7 +121,6 @@ do{ \
             printk("\n"); \
 }while(0)
 #else
-#define _DEBUG(msg...)
 #define _ERROR(msg...)
 #endif
 
@@ -132,12 +137,12 @@ struct rt5350_pcm {
 
 static inline uint32_t rt5350_reg_read(unsigned int reg_addr)
 {
-        return __raw_readl(ioremap(reg_addr, 4));
+    return __raw_readl(ioremap(reg_addr, 4));
 }
 
 static inline void rt5350_reg_write(	unsigned int reg_addr, uint32_t value)
 {
-        __raw_writel(value, ioremap(reg_addr, 4));
+    __raw_writel(value, ioremap(reg_addr, 4));
 }
 
 
@@ -155,24 +160,24 @@ static inline void rt5350_pcm_write(const struct rt5350_pcm *pcm,
 
 void getAllRegValue(const struct rt5350_pcm *pcm)
 {
-        _DEBUG("++");
-        _DEBUG("+++++++++++++++++++++++++++++++++++++++");
-        _DEBUG("[Offset: %04X] PCM_GLB_CFG = 0x%08X",PCM_GLB_CFG,rt5350_pcm_read(pcm, PCM_GLB_CFG));
-        _DEBUG("[Offset: %04X] PCM_PCM_CFG = 0x%08X",PCM_PCM_CFG,rt5350_pcm_read(pcm, PCM_PCM_CFG));
-        _DEBUG("[Offset: %04X] PCM_INT_STATUS = 0x%08X",PCM_INT_STATUS,rt5350_pcm_read(pcm, PCM_INT_STATUS));
-        _DEBUG("[Offset: %04X] PCM_INT_EN = 0x%08X",PCM_INT_EN,rt5350_pcm_read(pcm, PCM_INT_EN));
-        _DEBUG("[Offset: %04X] PCM_FF_STATUS = 0x%08X",PCM_FF_STATUS,rt5350_pcm_read(pcm, PCM_FF_STATUS));
-        _DEBUG("[Offset: %04X] PCM_CH0_CFG = 0x%08X",PCM_CH0_CFG,rt5350_pcm_read(pcm, PCM_CH0_CFG));
-        _DEBUG("[Offset: %04X] PCM_CH1_CFG = 0x%08X",PCM_CH1_CFG,rt5350_pcm_read(pcm, PCM_CH1_CFG));
-        _DEBUG("[Offset: %04X] PCM_FSYNC_CFG = 0x%08X",PCM_FSYNC_CFG,rt5350_pcm_read(pcm, PCM_FSYNC_CFG));
-        _DEBUG("[Offset: %04X] PCM_CH_CFG2 = 0x%08X",PCM_CH_CFG2,rt5350_pcm_read(pcm, PCM_CH_CFG2));
-        _DEBUG("[Offset: %04X] PCM_DIVCOMP_CFG = 0x%08X",PCM_DIVCOMP_CFG,rt5350_pcm_read(pcm, PCM_DIVCOMP_CFG));
-        _DEBUG("[Offset: %04X] PCM_DIVINT_CFG = 0x%08X",PCM_DIVINT_CFG,rt5350_pcm_read(pcm, PCM_DIVINT_CFG));
-        _DEBUG("[Offset: %04X] PCM_DIGDELAY_CFG = 0x%08X",PCM_DIGDELAY_CFG,rt5350_pcm_read(pcm, PCM_DIGDELAY_CFG));
-        _DEBUG("[Offset: %04X] PCM_CH0_FIFO = 0x%08X",PCM_CH0_FIFO,rt5350_pcm_read(pcm, PCM_CH0_FIFO));
-        _DEBUG("[Offset: %04X] PCM_CH1_FIFO = 0x%08X",PCM_CH1_FIFO,rt5350_pcm_read(pcm, PCM_CH1_FIFO));
-        _DEBUG("+++++++++++++++++++++++++++++++++++++++");
-        _DEBUG("--");
+    _DEBUG("++");
+    _DEBUG("+++++++++++++++++++++++++++++++++++++++");
+    _DEBUG("[Offset: %04X] PCM_GLB_CFG = 0x%08X",PCM_GLB_CFG,rt5350_pcm_read(pcm, PCM_GLB_CFG));
+    _DEBUG("[Offset: %04X] PCM_PCM_CFG = 0x%08X",PCM_PCM_CFG,rt5350_pcm_read(pcm, PCM_PCM_CFG));
+    _DEBUG("[Offset: %04X] PCM_INT_STATUS = 0x%08X",PCM_INT_STATUS,rt5350_pcm_read(pcm, PCM_INT_STATUS));
+    _DEBUG("[Offset: %04X] PCM_INT_EN = 0x%08X",PCM_INT_EN,rt5350_pcm_read(pcm, PCM_INT_EN));
+    _DEBUG("[Offset: %04X] PCM_FF_STATUS = 0x%08X",PCM_FF_STATUS,rt5350_pcm_read(pcm, PCM_FF_STATUS));
+    _DEBUG("[Offset: %04X] PCM_CH0_CFG = 0x%08X",PCM_CH0_CFG,rt5350_pcm_read(pcm, PCM_CH0_CFG));
+    _DEBUG("[Offset: %04X] PCM_CH1_CFG = 0x%08X",PCM_CH1_CFG,rt5350_pcm_read(pcm, PCM_CH1_CFG));
+    _DEBUG("[Offset: %04X] PCM_FSYNC_CFG = 0x%08X",PCM_FSYNC_CFG,rt5350_pcm_read(pcm, PCM_FSYNC_CFG));
+    _DEBUG("[Offset: %04X] PCM_CH_CFG2 = 0x%08X",PCM_CH_CFG2,rt5350_pcm_read(pcm, PCM_CH_CFG2));
+    _DEBUG("[Offset: %04X] PCM_DIVCOMP_CFG = 0x%08X",PCM_DIVCOMP_CFG,rt5350_pcm_read(pcm, PCM_DIVCOMP_CFG));
+    _DEBUG("[Offset: %04X] PCM_DIVINT_CFG = 0x%08X",PCM_DIVINT_CFG,rt5350_pcm_read(pcm, PCM_DIVINT_CFG));
+    _DEBUG("[Offset: %04X] PCM_DIGDELAY_CFG = 0x%08X",PCM_DIGDELAY_CFG,rt5350_pcm_read(pcm, PCM_DIGDELAY_CFG));
+    _DEBUG("[Offset: %04X] PCM_CH0_FIFO = 0x%08X",PCM_CH0_FIFO,rt5350_pcm_read(pcm, PCM_CH0_FIFO));
+    _DEBUG("[Offset: %04X] PCM_CH1_FIFO = 0x%08X",PCM_CH1_FIFO,rt5350_pcm_read(pcm, PCM_CH1_FIFO));
+    _DEBUG("+++++++++++++++++++++++++++++++++++++++");
+    _DEBUG("--");
 }
 
 static int rt5350_pcm_startup(struct snd_pcm_substream *substream,
@@ -181,19 +186,19 @@ static int rt5350_pcm_startup(struct snd_pcm_substream *substream,
 	struct rt5350_pcm *pcm = snd_soc_dai_get_drvdata(dai);
 	uint32_t cfg;
 
-        _DEBUG("++");
+    _DEBUG("++");
 
 	if (dai->active) {
-                _DEBUG("--");
+        _DEBUG("--");
 		return 0;
 	}
 
 	cfg = rt5350_pcm_read(pcm, PCM_GLB_CFG);
-        cfg |= PCM_GLB_CFG_EN;
-        _DEBUG("PCM_ENABLE");
+    cfg |= PCM_GLB_CFG_EN;
+    _DEBUG("PCM_ENABLE");
 	rt5350_pcm_write(pcm, PCM_GLB_CFG, cfg);
         
-        _DEBUG("--");
+    _DEBUG("--");
 	return 0;
 }
 
@@ -203,19 +208,19 @@ static void rt5350_pcm_shutdown(struct snd_pcm_substream *substream,
 	struct rt5350_pcm *pcm = snd_soc_dai_get_drvdata(dai);
 	uint32_t cfg;
 
-        _DEBUG("++");
+    _DEBUG("++");
 
 	if (dai->active) {
-                _DEBUG("--");
+        _DEBUG("--");
 		return;
 	}
 
 	cfg = rt5350_pcm_read(pcm, PCM_GLB_CFG);
 	cfg &= ~PCM_GLB_CFG_EN;
-        _DEBUG("PCM_DISABLE");
+    _DEBUG("PCM_DISABLE");
 	rt5350_pcm_write(pcm, PCM_GLB_CFG, cfg);
         
-        _DEBUG("--");
+    _DEBUG("--");
 }
 
 static int rt5350_pcm_trigger(struct snd_pcm_substream *substream, int cmd,
@@ -226,15 +231,15 @@ static int rt5350_pcm_trigger(struct snd_pcm_substream *substream, int cmd,
 	uint32_t cfg;
 	uint32_t mask;
 
-        //_DEBUG("++");
+    //_DEBUG("++");
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		mask = PCM_GLB_CFG_CH0_TX_EN;
-                //_DEBUG("CH0_TX_EN");
+        //_DEBUG("CH0_TX_EN");
 	 }
 	else {
 		mask = PCM_GLB_CFG_CH0_RX_EN;
-                //_DEBUG("CH0_RX_EN");
+        //_DEBUG("CH0_RX_EN");
 	}
 
 	cfg = rt5350_pcm_read(pcm, PCM_GLB_CFG);
@@ -256,16 +261,16 @@ static int rt5350_pcm_trigger(struct snd_pcm_substream *substream, int cmd,
 
 	if (cfg & (PCM_GLB_CFG_CH0_TX_EN | PCM_GLB_CFG_CH0_RX_EN)) {
 		cfg |= PCM_GLB_CFG_DMA_EN;
-                //_DEBUG("DMA_EN = 1");
-	    }
+        //_DEBUG("DMA_EN = 1");
+	}
 	else {
 		cfg &= ~PCM_GLB_CFG_DMA_EN;
-                //_DEBUG("DMA_EN = 0");
-	    }
+        //_DEBUG("DMA_EN = 0");
+	}
 
 	rt5350_pcm_write(pcm, PCM_GLB_CFG, cfg);
 
-        //_DEBUG("--");
+    //_DEBUG("--");
 	return 0;
 }
 
@@ -274,7 +279,7 @@ static int rt5350_pcm_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 	struct rt5350_pcm *pcm = snd_soc_dai_get_drvdata(dai);
 	uint32_t cfg;
 
-        _DEBUG("++");
+    _DEBUG("++");
 
 	cfg = rt5350_pcm_read(pcm, PCM_PCM_CFG);
 
@@ -282,14 +287,14 @@ static int rt5350_pcm_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 	    case SND_SOC_DAIFMT_CBS_CFS:
 		cfg &= ~PCM_PCM_CFG_CLKOUT_EN; // pcm clock from external
 		_DEBUG("EXT_CLK_EN");
-                cfg |= PCM_PCM_CFG_EXT_FSYNC; // pcm sync from external
-                _DEBUG("EXT_FSYNC");
+        cfg |= PCM_PCM_CFG_EXT_FSYNC; // pcm sync from external
+        _DEBUG("EXT_FSYNC");
 		break;
 	    case SND_SOC_DAIFMT_CBM_CFM:
 		cfg |= PCM_PCM_CFG_CLKOUT_EN; // pcm clock from internal
 		_DEBUG("INT_CLK_EN");
-                cfg &= ~PCM_PCM_CFG_EXT_FSYNC; // pcm sync from internal
-                _DEBUG("INT_FSYNC");
+        cfg &= ~PCM_PCM_CFG_EXT_FSYNC; // pcm sync from internal
+        _DEBUG("INT_FSYNC");
 		break;
 	    case SND_SOC_DAIFMT_CBM_CFS:
 	    default:
@@ -298,7 +303,7 @@ static int rt5350_pcm_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
     
 	rt5350_pcm_write(pcm, PCM_PCM_CFG, cfg);
 
-        _DEBUG("--");
+    _DEBUG("--");
 	return 0;
 }
 
@@ -323,22 +328,22 @@ unsigned long i2sMaster_inclk_comp[11] = {64, 352, 42, 32, 176, 21, 272, 88, 10,
 static int rt5350_pcm_set_sysclk(struct snd_soc_dai *dai, int clk_id,
 	unsigned int freq, int dir)
 {
-        struct rt5350_pcm *pcm = snd_soc_dai_get_drvdata(dai);
+    struct rt5350_pcm *pcm = snd_soc_dai_get_drvdata(dai);
 
-        _DEBUG("++");
+    _DEBUG("++");
 	_DEBUG("Internal REFCLK with fractional division");
 
-        //When using the external clock, the frequency clock
-        //should be equal to the PCM_clock out. Otherwise, the
-        //PCM_CLKin should be 8.192 MHz.
+    //When using the external clock, the frequency clock
+    //should be equal to the PCM_clock out. Otherwise, the
+    //PCM_CLKin should be 8.192 MHz.
 	rt5350_pcm_write(pcm, PCM_DIVINT_CFG, i2sMaster_inclk_int[PCMCLOCK_OUT]);
-        _DEBUG("DIVINT = %d",i2sMaster_inclk_int[PCMCLOCK_OUT]);
+    _DEBUG("DIVINT = %d",i2sMaster_inclk_int[PCMCLOCK_OUT]);
 	rt5350_pcm_write(pcm, PCM_DIVCOMP_CFG, i2sMaster_inclk_comp[PCMCLOCK_OUT] | PCM_DIVCOMP_CFG_CLK_EN);
-        _DEBUG("DIVCOMP = %d",i2sMaster_inclk_comp[PCMCLOCK_OUT]);
+    _DEBUG("DIVCOMP = %d",i2sMaster_inclk_comp[PCMCLOCK_OUT]);
 	//_DEBUG("Clk_Out = %f KHz",(40000.0*(1/2)*(1/(i2sMaster_inclk_int[PCMCLOCK_OUT]+i2sMaster_inclk_comp[PCMCLOCK_OUT]/512.0))));
         
 	_DEBUG("--");
-        return 0;
+    return 0;
 }
 
 static int rt5350_pcm_suspend(struct snd_soc_dai *dai)
@@ -346,16 +351,16 @@ static int rt5350_pcm_suspend(struct snd_soc_dai *dai)
 	struct rt5350_pcm *pcm = snd_soc_dai_get_drvdata(dai);
 	uint32_t cfg;
 
-        _DEBUG("++");
+    _DEBUG("++");
         
 	if (dai->active) {
 		cfg = rt5350_pcm_read(pcm, PCM_GLB_CFG);
 		cfg &= ~PCM_GLB_CFG_CH0_TX_EN;                
-                _DEBUG("CH0_TX_EN = 0");
+        _DEBUG("CH0_TX_EN = 0");
 		rt5350_pcm_write(pcm, PCM_GLB_CFG, cfg);
 	}
 
-        _DEBUG("--");
+    _DEBUG("--");
 	return 0;
 }
 
@@ -364,16 +369,16 @@ static int rt5350_pcm_resume(struct snd_soc_dai *dai)
 	struct rt5350_pcm *pcm = snd_soc_dai_get_drvdata(dai);
 	uint32_t cfg;
 
-        _DEBUG("++");
+    _DEBUG("++");
 
 	if (dai->active) {
 		cfg = rt5350_pcm_read(pcm, PCM_GLB_CFG);
 		cfg |= PCM_GLB_CFG_CH0_TX_EN;
-                _DEBUG("GLB_CFG_CH0_TX_EN = 1");
+        _DEBUG("GLB_CFG_CH0_TX_EN = 1");
 		rt5350_pcm_write(pcm, PCM_GLB_CFG, cfg);
 	}
 
-        _DEBUG("--");
+    _DEBUG("--");
 	return 0;
 }
 
@@ -381,7 +386,7 @@ static void rt5350_init_pcm_config(struct rt5350_pcm *pcm)
 {
 	struct snd_dmaengine_dai_dma_data *dma_data;
 
-        _DEBUG("++");
+    _DEBUG("++");
 
 	/* Playback */
 	dma_data = &pcm->playback_dma_data;
@@ -395,7 +400,7 @@ static void rt5350_init_pcm_config(struct rt5350_pcm *pcm)
 	dma_data->slave_id = 4;
 	dma_data->addr = pcm->phys_base + PCM_CH0_FIFO;
     
-        _DEBUG("--");
+    _DEBUG("--");
 }
 
 static int rt5350_pcm_dai_probe(struct snd_soc_dai *dai)
@@ -403,7 +408,7 @@ static int rt5350_pcm_dai_probe(struct snd_soc_dai *dai)
 	struct rt5350_pcm *pcm = snd_soc_dai_get_drvdata(dai);
 	uint32_t cfg;
     
-        _DEBUG("++");
+    _DEBUG("++");
         
 	rt5350_init_pcm_config(pcm);
 	dai->playback_dma_data = &pcm->playback_dma_data;
@@ -411,44 +416,44 @@ static int rt5350_pcm_dai_probe(struct snd_soc_dai *dai)
 
 	_DEBUG("Internal REFCLK with fractional division");
 
-        _DEBUG("DFT_THERES = 4 ");
+    _DEBUG("DFT_THERES = 4 ");
 	rt5350_pcm_write(pcm, PCM_GLB_CFG, PCM_GLB_CFG_DFT_THRES);
 	rt5350_pcm_write(pcm, PCM_INT_EN, 0);
-        _DEBUG("INT_EN = 0x00");
+    _DEBUG("INT_EN = 0x00");
     
-        ///////////// pcm general config
-        cfg = rt5350_pcm_read(pcm, PCM_PCM_CFG);
-        _DEBUG("LONG_FSYNC = 1");
-        //cfg |= PCM_PCM_CFG_LONG_FSYNC; //long sync mode
-        cfg &= ~PCM_PCM_CFG_LONG_FSYNC; //short sync mode    
-        _DEBUG("FSYNC_POL = 1");
-        cfg |= PCM_PCM_CFG_FSYNC_POL; // sync high active
+    ///////////// pcm general config
+    cfg = rt5350_pcm_read(pcm, PCM_PCM_CFG);
+    _DEBUG("LONG_FSYNC = 1");
+    //cfg |= PCM_PCM_CFG_LONG_FSYNC; //long sync mode
+    cfg &= ~PCM_PCM_CFG_LONG_FSYNC; //short sync mode    
+    _DEBUG("FSYNC_POL = 1");
+    cfg |= PCM_PCM_CFG_FSYNC_POL; // sync high active
     
-        //slot mode, pcm clock = 256KHz
-        //cfg &= ~(0x07);
-        //cfg = 0; // 4 slots
-        cfg |= PCM_PCM_CFG_SLOT_MODE; // 32 slot, pcm clock = 2.048MHz   
-        _DEBUG("SLOT_MODE = 3");
+    //slot mode, pcm clock = 256KHz
+    //cfg &= ~(0x07);
+    //cfg = 0; // 4 slots
+    cfg |= PCM_PCM_CFG_SLOT_MODE; // 32 slot, pcm clock = 2.048MHz   
+    _DEBUG("SLOT_MODE = 3");
         
-        rt5350_pcm_write(pcm, PCM_PCM_CFG, cfg);
+    rt5350_pcm_write(pcm, PCM_PCM_CFG, cfg);
     
-        ///////////// pcm sync config
-        //cfg = rt5350_pcm_read(pcm, PCM_FSYNC_CFG);
-        // pol, etc.
+    ///////////// pcm sync config
+    //cfg = rt5350_pcm_read(pcm, PCM_FSYNC_CFG);
+    // pol, etc.
     
-        //rt5350_pcm_write(pcm, PCM_FSYNC_CFG, cfg);
+    //rt5350_pcm_write(pcm, PCM_FSYNC_CFG, cfg);
     
-        //When using the external clock, the frequency clock
-        //should be equal to the PCM_clock out. Otherwise, the
-        //PCM_CLKin should be 8.192 MHz.
+    //When using the external clock, the frequency clock
+    //should be equal to the PCM_clock out. Otherwise, the
+    //PCM_CLKin should be 8.192 MHz.
 	rt5350_pcm_write(pcm, PCM_DIVINT_CFG, i2sMaster_inclk_int[PCMCLOCK_OUT]);        
-        _DEBUG("DIVINT = %d",i2sMaster_inclk_int[PCMCLOCK_OUT]);
+    _DEBUG("DIVINT = %d",i2sMaster_inclk_int[PCMCLOCK_OUT]);
 	rt5350_pcm_write(pcm, PCM_DIVCOMP_CFG, i2sMaster_inclk_comp[PCMCLOCK_OUT] | PCM_DIVCOMP_CFG_CLK_EN);
-        _DEBUG("DIVCOMP = %d",i2sMaster_inclk_comp[PCMCLOCK_OUT]);        
-        //_DEBUG("Clk_Out = %f KHz",(40000.0*(1/2)*(1/(i2sMaster_inclk_int[PCMCLOCK_OUT]+i2sMaster_inclk_comp[PCMCLOCK_OUT]/512.0))));
+    _DEBUG("DIVCOMP = %d",i2sMaster_inclk_comp[PCMCLOCK_OUT]);        
+    //_DEBUG("Clk_Out = %f KHz",(40000.0*(1/2)*(1/(i2sMaster_inclk_int[PCMCLOCK_OUT]+i2sMaster_inclk_comp[PCMCLOCK_OUT]/512.0))));
 
-        _DEBUG("--");
-        getAllRegValue(pcm);
+    _DEBUG("--");
+    getAllRegValue(pcm);
 	return 0;
 }
 
@@ -518,31 +523,31 @@ static int rt5350_pcm_dev_probe(struct platform_device *pdev)
 {
 	struct rt5350_pcm *pcm;
 	int ret;
-        unsigned int gpio_cfg;
+    unsigned int gpio_cfg;
 
-        _DEBUG("++");
+    _DEBUG("++");
 
-        // Config GPIO MODE register
-        //gpio_cfg = rt5350_reg_read(GPIOMODE_BASE + GPIOMODE_OFFSET);   
-        //_DEBUG("GPIO MODE REG: 0x%0x\n",gpio_cfg);
-        //gpio_cfg |= (0x1 << 6); // JTAG_GPIO_MODE     
-        //gpio_cfg |= (0x4 << 2);// UARTF_SHARE_MODE  PCM + GPIO = b100
-        //rt5350_reg_write(GPIOMODE_BASE + GPIOMODE_OFFSET, gpio_cfg);
+    // Config GPIO MODE register
+    //gpio_cfg = rt5350_reg_read(GPIOMODE_BASE + GPIOMODE_OFFSET);   
+    //_DEBUG("GPIO MODE REG: 0x%0x\n",gpio_cfg);
+    //gpio_cfg |= (0x1 << 6); // JTAG_GPIO_MODE     
+    //gpio_cfg |= (0x4 << 2);// UARTF_SHARE_MODE  PCM + GPIO = b100
+    //rt5350_reg_write(GPIOMODE_BASE + GPIOMODE_OFFSET, gpio_cfg);
 
-        //Config GPIO DIR register
-        //gpio_cfg = rt5350_reg_read(GPIO_REG_BASE + GPIO21_00_DIR);    
-        //_DEBUG("GPIO DIR REG: 0x%0x\n",gpio_cfg);
-        //gpio_cfg &= ~((0x1 << 10) | (0x1 << 21));// Set GPIO#10 & GPIO#21 as input
-        //gpio_cfg |= (1 << 8)|(1 << 17)|(1 << 18); //Set GPIO#8,17,18 as output mode
-        //gpio_cfg |= (1 << 19)|(1 << 20)|(1 << 21);//Set GPIO#19,20,21 as output mode
-        //rt5350_reg_write(GPIO_REG_BASE + GPIO21_00_DIR, gpio_cfg);
+    //Config GPIO DIR register
+    //gpio_cfg = rt5350_reg_read(GPIO_REG_BASE + GPIO21_00_DIR);    
+    //_DEBUG("GPIO DIR REG: 0x%0x\n",gpio_cfg);
+    //gpio_cfg &= ~((0x1 << 10) | (0x1 << 21));// Set GPIO#10 & GPIO#21 as input
+    //gpio_cfg |= (1 << 8)|(1 << 17)|(1 << 18); //Set GPIO#8,17,18 as output mode
+    //gpio_cfg |= (1 << 19)|(1 << 20)|(1 << 21);//Set GPIO#19,20,21 as output mode
+    //rt5350_reg_write(GPIO_REG_BASE + GPIO21_00_DIR, gpio_cfg);
     
-        /* RESET(GPIO#8) Default value is output 1, Others output 0 */
-        //gpio_cfg = rt5350_reg_read(GPIO_REG_BASE + GPIO21_00_DATA); 
-        //_DEBUG("GPIO DATA REG: 0x%0x\n",gpio_cfg);
-        //gpio_cfg |= (1 << 8)|(1 << 19);
-        //gpio_cfg &= ~((1 << 17) | (1 << 18) | (1 << 20));
-        //rt5350_reg_write(GPIO_REG_BASE + GPIO21_00_DIR, gpio_cfg);
+    /* RESET(GPIO#8) Default value is output 1, Others output 0 */
+    //gpio_cfg = rt5350_reg_read(GPIO_REG_BASE + GPIO21_00_DATA); 
+    //_DEBUG("GPIO DATA REG: 0x%0x\n",gpio_cfg);
+    //gpio_cfg |= (1 << 8)|(1 << 19);
+    //gpio_cfg &= ~((1 << 17) | (1 << 18) | (1 << 20));
+    //rt5350_reg_write(GPIO_REG_BASE + GPIO21_00_DIR, gpio_cfg);
         
 	snd_dmaengine_pcm_register(&pdev->dev,
 		&rt5350_dmaengine_pcm_config,
@@ -550,7 +555,7 @@ static int rt5350_pcm_dev_probe(struct platform_device *pdev)
 
 	pcm = kzalloc(sizeof(*pcm), GFP_KERNEL);
 	if (!pcm) {
-                _DEBUG("--");
+        _DEBUG("--");
 		return -ENOMEM;
 	}
     
@@ -560,8 +565,7 @@ static int rt5350_pcm_dev_probe(struct platform_device *pdev)
 		goto err_free;
 	}
 
-	pcm->mem = request_mem_region(pcm->mem->start, resource_size(pcm->mem),
-				pdev->name);
+	pcm->mem = request_mem_region(pcm->mem->start, resource_size(pcm->mem),	pdev->name);
 	if (!pcm->mem) {
 		ret = -EBUSY;
 		goto err_free;
@@ -581,7 +585,7 @@ static int rt5350_pcm_dev_probe(struct platform_device *pdev)
 
 	if (!ret) {
 		dev_err(&pdev->dev, "loaded");
-                _DEBUG("--");
+        _DEBUG("--");
 		return ret;
 	}
 
@@ -593,7 +597,7 @@ err_release_mem_region:
 err_free:
 	kfree(pcm);
 
-        _DEBUG("--");
+    _DEBUG("--");
 	return ret;
 }
 
@@ -601,7 +605,7 @@ static int rt5350_pcm_dev_remove(struct platform_device *pdev)
 {
 	struct rt5350_pcm *pcm = platform_get_drvdata(pdev);
 
-        _DEBUG("++");
+    _DEBUG("++");
 
 	snd_soc_unregister_component(&pdev->dev);
 
@@ -612,7 +616,7 @@ static int rt5350_pcm_dev_remove(struct platform_device *pdev)
 
 	snd_dmaengine_pcm_unregister(&pdev->dev);
 
-        _DEBUG("--");
+    _DEBUG("--");
 
 	return 0;
 }

@@ -31,9 +31,9 @@ static const struct snd_soc_dapm_route sxx_pcm_machine_routes[] = {
 };
 
 #define RT5350_DAIFMT (SND_SOC_DAIFMT_NB_NF | \
-                        SND_SOC_DAIFMT_CBM_CFM) //rt5350 as master
-//			SND_SOC_DAIFMT_CBS_CFM) //rt5350 as master
-//			SND_SOC_DAIFMT_CBS_CFS) //rt5350 as slave
+                       SND_SOC_DAIFMT_CBM_CFM) //rt5350 as master
+                       //SND_SOC_DAIFMT_CBS_CFM) //rt5350 as master
+                       //SND_SOC_DAIFMT_CBS_CFS) //rt5350 as slave
 
 static int sxx_pcm_machine_init(struct snd_soc_pcm_runtime *rtd)
 {
@@ -55,7 +55,7 @@ static int sxx_pcm_machine_hw_params(struct snd_pcm_substream *substream,
 	ret = snd_soc_dai_set_fmt(cpu_dai, RT5350_DAIFMT);
 	if (ret < 0) {
 		dev_err(codec->dev, "Failed to set cpu dai format: %d\n", ret);
-                printk("[%06d]%s-- \n",__LINE__,__FUNCTION__);
+        //printk("[%06d]%s-- \n",__LINE__,__FUNCTION__);
 		return ret;
 	}
 	
