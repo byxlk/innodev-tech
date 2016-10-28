@@ -95,7 +95,7 @@
 #define SI3050_READ					0x60
 #define SI3050_WRITE				0x20
 
-#define SI3050_MAX_FTD_RETRY			25
+#define SI3050_MAX_FTD_RETRY			3
 #define SI3050_FTD_DELAY				100 /* In mSec */
 
 
