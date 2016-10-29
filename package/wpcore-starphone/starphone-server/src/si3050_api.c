@@ -255,9 +255,13 @@ void si3050_sw_reset(SPS_SYSTEM_INFO_T *sps)
 
 void Si3050_Pin_Reset(void)
 {
+	    //set_spiclk_pin_low();
+		//set_spics_pin_low();
+		//set_spisdi_pin_low();
         usleep(1000);
         set_reset_pin_low(); // RESET
         usleep(50*1000);
+		//set_spiclk_pin_high();
         usleep(50*1000);
         usleep(50*1000);
         //usleep(50*1000);
@@ -590,6 +594,8 @@ int XW_Si3050_DAA_System_Init(void)
 
         SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
 
+        gpio_spi_port_dir_init();
+
         // reset si3050 with set low level for reset pin
         Si3050_Pin_Reset();
         _DEBUG("Reset si3050 hardware complete...");
@@ -683,7 +689,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
                 { 
         		if(get_phone_busy_status() == 1)
                         {
-        			sock_send_msg = "busy\n"; //  關閉撥號狀態
+        			sock_send_msg = "busy\n"; //  關閉撥號狀�?
         			sock_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
                                 _DEBUG("phone is busy now !");
         			continue;
@@ -724,16 +730,16 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
                 /*        	
         	else if(strncmp(send_buf.m_buffer, "key:", 4)==0) { // 通話中的按鍵:0~9, *, #
         		if(busy==0) {
-        			sock_send_msg = "no communication\n"; // 還在掛機狀態, 不能用這個指令
+        			sock_send_msg = "no communication\n"; // 還在掛機狀�? 不能用這個指�?
         			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
         			return;
         		}
         		modem_mute = 1; // 靜音, 避免干擾 dtmf tone
-        		usleep(500000); // delay, 因為 modem 出聲音本來就有延遲
+        		usleep(500000); // delay, 因為 modem 出聲音本來就有延�?
         		//char number[50];
         		//strncpy(number, buf+5, strlen(buf)-5);
         		char buf2[3] = {0x21, 0x1, 0};
-        		if(send_buf.m_buffer[4]>=49 && send_buf.m_buffer[4]<=57) { // 1~9直接送
+        		if(send_buf.m_buffer[4]>=49 && send_buf.m_buffer[4]<=57) { // 1~9直接�?
         			buf2[2] = send_buf.m_buffer[4]-48;
         		}else if(send_buf.m_buffer[4]=='*')  {
         			buf2[2] = 0xb;
@@ -745,7 +751,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		//send_pstn(3, buf2);
         		sock_send_msg = "key_ok\n";
         		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
-        		usleep(500000); // delay, 因為 modem 出聲音本來就有延遲
+        		usleep(500000); // delay, 因為 modem ?��聲音本來就有延遲
         		modem_mute = 0;
         		//exit(-1);
         	}        	
@@ -766,7 +772,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		if(arg->peer != NULL) {
         			_send(arg->peer->connfd, sock_send_msg, strlen(sock_send_msg));
         			(*arg->peer).peer = NULL; // 清除對方
-        			arg->peer = NULL; // 清除自己紀錄
+        			arg->peer = NULL; // 清除自己紀�?
         			arg->busy=0;
         			printf("id=%d",arg->id);
         		} else {
@@ -775,7 +781,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		sock_send_msg ="ok\n";
         		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
         	}
-        	else if(strcmp(send_buf.m_buffer, "pick_up")==0) { // 外線有人接起了
+        	else if(strcmp(send_buf.m_buffer, "pick_up")==0) { // 外線有人接起�?
         		//broadcast_clients("ring_end\n");
         		//thread_arg_hook arg_hook;
         		//arg_hook.caddr = arg->caddr;
@@ -790,7 +796,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		// find client with the id
         		for(i=0;i<MAX;i++) {
         			printf("enter internal top\n,internal id =%d\n",clients[i]->id);
-        			if(clients[i]->id == atoi(send_buf.m_buffer+9)) { // atoi 會自動忽略無法轉的字元
+        			if(clients[i]->id == atoi(send_buf.m_buffer+9)) { // atoi 會自動忽略無法轉的字�?
         				// 對方忙線
         				if(clients[i]->peer != NULL || clients[i]->busy==1) {
         					sock_send_msg ="busy\n";
@@ -819,19 +825,19 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         	else if(strncmp(send_buf.m_buffer, "register:", 9)==0) { // test_dial:12345 註冊分機號碼
         		// check exist
         		for(i=0;i<MAX;i++) {
-        			if(clients[i]->id == atoi(send_buf.m_buffer+9)) { // atoi 會自動忽略無法轉的字元
+        			if(clients[i]->id == atoi(send_buf.m_buffer+9)) { // atoi 會自動忽略無法轉的字�?
         				char *buf2 = "register_exist\n";
         				_send(arg->connfd, buf2, strlen(buf2));
         				return;
         			}
         		}
-        		// 沒重複, 登記成功
+        		// 沒重�? 登記成功
         		arg->id = atoi(send_buf.m_buffer+9);
         		sock_send_msg ="register_ok\n";
         		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
         	}
         	else if(strncmp(send_buf.m_buffer, "deny", 4)==0) { // 拒接外線
-        		// 拿起再馬上掛掉
+        		// 拿起再馬上掛�?
         		char buf2[2] = {0x12, 0}; // off-hook
         		send_pstn(2, buf2);
         		
@@ -847,9 +853,9 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         			
         			sock_send_msg = "switch_ok\n";
         			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
-        			busy = 1; // FIXME: 強制再指定成1, 要找是那邊把他變成 0 的
+        			busy = 1; // FIXME: 強制再指定成1, 要找是那邊把他變�?0 �?
         		} else {
-        			sock_send_msg = "no communication\n"; // 還在掛機狀態, 不能用這個指令
+        			sock_send_msg = "no communication\n"; // 還在掛機狀�? 不能用這個指�?
         			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
         		}
         	}

@@ -68,7 +68,18 @@
 #define IOCTL_SET_RESET_PIN_HIGH 2
 #define IOCTL_SET_RESET_PIN_LOW 3
 #define IOCTL_SI3050_HW_RESET 4
+#define IOCTL_SET_RESET_PIN_LOW 3
+#define IOCTL_SI3050_HW_RESET 4
 #define IOCTL_SI3050_SW_RESET 5
+#define IOCTL_SET_SPICLK_PIN_HIGH 6
+#define IOCTL_SET_SPICLK_PIN_LOW 7
+#define IOCTL_SET_SPICS_PIN_HIGH 8
+#define IOCTL_SET_SPICS_PIN_LOW 9
+#define IOCTL_SET_SPISDI_PIN_HIGH 10
+#define IOCTL_SET_SPISDI_PIN_LOW 11
+
+
+
 
 #define GPIO_BIT(x, y) ((((0x01 << (x)) & (y)) == 0)? GPIO_VAL_LOW : GPIO_VAL_HIGH)
 
@@ -304,6 +315,7 @@ static int gpio_spi_byte_write(unsigned char reg, unsigned char val)
         int i = 0;
         
         // first: send 0x20
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH); // CS
         udelay(DELAY_DAT);
         set_gpio_value(GPIO_SPI_CS, GPIO_VAL_LOW); // CS
         udelay(DELAY_CS);
@@ -361,6 +373,7 @@ static unsigned char gpio_spi_byte_read(unsigned char reg)
         //_DEBUG("step 1: send 0x60");
         
         // first: send 0x60
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH); // CS
         udelay(DELAY_DAT);
         set_gpio_value(GPIO_SPI_CS, GPIO_VAL_LOW); // CS       
         udelay(DELAY_CS);
@@ -568,6 +581,24 @@ static long gpio_spi_unlocked_ioctl(struct file *file, unsigned int cmd, unsigne
         case IOCTL_SET_RESET_PIN_LOW:
             set_gpio_value(GPIO_SPI_RESET, GPIO_VAL_LOW); // RESET
             break;
+	    case IOCTL_SET_SPICLK_PIN_HIGH:
+		    set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_HIGH); // RESET
+			break;
+		case IOCTL_SET_SPICLK_PIN_LOW:
+		    set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_LOW); // RESET
+		    break;
+		case IOCTL_SET_SPICS_PIN_HIGH:
+		    set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH); // RESET
+		    break;
+	    case IOCTL_SET_SPICS_PIN_LOW:
+	        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_LOW); // RESET
+	        break;
+	    case IOCTL_SET_SPISDI_PIN_HIGH:
+	        set_gpio_value(GPIO_SPI_SDI, GPIO_VAL_HIGH); // RESET
+			break;
+	    case IOCTL_SET_SPISDI_PIN_LOW:
+	        set_gpio_value(GPIO_SPI_SDI, GPIO_VAL_LOW); // RESET
+	        break;
         case IOCTL_SI3050_HW_RESET:
             si3050_hw_reset();
             break;
