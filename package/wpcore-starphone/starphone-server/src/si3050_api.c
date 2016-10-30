@@ -220,38 +220,37 @@ int Si3050_Pcm_DriverInit(SPS_SYSTEM_INFO_T *sps)
     return 0;
 }
 
-#if 0
-void si3050_sw_reset(SPS_SYSTEM_INFO_T *sps)
+void si3050_sw_reset(void)
 {
     unsigned char regCfg = 0;
 
     
     //Enable si3050 PCM interface 
-    regCfg = gpio_spi_read(33);
+    regCfg = gpio_spi_read(SI3050_REG_PCM_SPI_MODE_SELECT);
     regCfg |= (0x1 << 3) | (0x1 << 5); // Enable PCM & u-Law
     regCfg &= ~(0x1 << 4);
-    gpio_spi_write(33, regCfg);
+    gpio_spi_write(SI3050_REG_PCM_SPI_MODE_SELECT, regCfg);
 
     //Specific county Seting for Taiwan
-    regCfg = gpio_spi_read(16);
+    regCfg = gpio_spi_read(SI3050_REG_INTERNATIONAL_CONTROL1);
     regCfg &= ~((0x1 << 0) & (0x1 << 1) & (0x1 << 4) &  (0x1 << 6)); // OHS RZ RT
-    gpio_spi_write(16, regCfg);
+    gpio_spi_write(SI3050_REG_INTERNATIONAL_CONTROL1, regCfg);
 
-    regCfg = gpio_spi_read(26);
+    regCfg = gpio_spi_read(SI3050_REG_DC_TERMINATION_CONTROL);
     regCfg |= (0x1 << 6) | (0x1 << 7); // DCV[1:0] = 11
     regCfg &= ~((0x1 << 1) & (0x1 << 4) & (0X1 << 5));
-    gpio_spi_write(26, regCfg);
+    gpio_spi_write(SI3050_REG_DC_TERMINATION_CONTROL, regCfg);
 
-    regCfg = gpio_spi_read(30);
+    regCfg = gpio_spi_read(SI3050_REG_AC_TERMIATION_CONTROL);
     regCfg &= ~((0x1 << 0) & (0x1 << 1) & (0x1 << 2) & (0x1 << 3) & (0x1 << 4));
-    gpio_spi_write(30, regCfg);
+    gpio_spi_write(SI3050_REG_AC_TERMIATION_CONTROL, regCfg);
 
-    regCfg = gpio_spi_read(31);
+    regCfg = gpio_spi_read(SI3050_REG_AC_TERMIATION_CONTROL);
     regCfg &= ~(0x1 << 3); // OHS2 = 0
-    gpio_spi_write(31, regCfg);    
+    gpio_spi_write(SI3050_REG_AC_TERMIATION_CONTROL, regCfg);    
 
 }
-#endif
+
 
 void Si3050_Pin_Reset(void)
 {
@@ -528,8 +527,6 @@ void Si3050_Dial_PhoneNum(char dial_num)
 
         _DEBUG("Dial Number :  %c",dial_num);
 
-        //config Si3050
-        Si3050_Set_Hook(HI_TRUE);
 
 	// Create wav sound file path
         sprintf(wav_file, "/root/starphone/res/%c.wav", dial_num);
@@ -552,7 +549,7 @@ void Si3050_Dial_PhoneNum(char dial_num)
 		_ERROR("open wav file %s faild...", wav_file);
 		wav_close(&wav);
 	}
-	wav_dump(wav);
+	//wav_dump(wav);
 
 	wav_rewind(wav);
 
@@ -566,15 +563,27 @@ void Si3050_Dial_PhoneNum(char dial_num)
 	}	
 	_DEBUG("pcm data buf addr: 0x%x size: %d Byte",pcm_rw_buf, pcm_buf_size);
 	
+	retVal = wav_read_data(wav, pcm_rw_buf, pcm_buf_size);
+	if(retVal < 0)
+	{
+		_ERROR("Read data from wav file faild, target read size: %d Real read size: %d",
+		        pcm_buf_size,retVal);
+		wav_close(&wav);
+	    free(pcm_rw_buf);
+		
+		return ;
+	}
+
 	// transfer dial number .wav data to Si3050 pcm port
-	_DEBUG("[pcm fd] OUT_fd: %d",DTSystemInfo->si3050_pcm_out->fd);
+	_DEBUG("[pcm fd] OUT_fd: %d read return value: %d",DTSystemInfo->si3050_pcm_out->fd,retVal);
 	retVal = pcm_write(DTSystemInfo->si3050_pcm_out, pcm_rw_buf, pcm_buf_size);
 	if(retVal < 0)
 	{
 		_ERROR("pcm_write return value(ErrNo:%d) error !",retVal);
 	}
-
+    _DEBUG("pcm_write data compilete.");
 	wav_close(&wav);
+	free(pcm_rw_buf);
 
         usleep(50*1000);
         usleep(50*1000);
@@ -680,7 +689,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
                 else if(strncmp(send_buf.m_buffer, "hangup", 6)==0) 
                 {        		
         		//Modem_Hangup();
-                        Si3050_Set_Hook(0);
+                Si3050_Set_Hook(0);
         		sock_send_msg ="ok\n";
          		set_phone_busy_status(0);
         		sock_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
@@ -694,7 +703,9 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
                                 _DEBUG("phone is busy now !");
         			continue;
         		}
-                        set_phone_busy_status(1);
+               //config Si3050
+               Si3050_Set_Hook(HI_TRUE);
+		       set_phone_busy_status(1);
 
                         //Parse dial number
                         unsigned char i = 0;
