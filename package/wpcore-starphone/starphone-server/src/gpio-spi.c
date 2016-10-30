@@ -441,7 +441,7 @@ int gpio_spi_write(unsigned char reg, unsigned char val)
         }
         usleep(100);
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_HIGH); // CS
-        usleep(0*1000);
+        usleep(5*1000);
 
         //second: send address
         set_gpio_value(GPIO_SPI_CS_VAL, GPIO_VAL_LOW); // CS

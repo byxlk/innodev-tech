@@ -264,14 +264,14 @@ void Si3050_Pin_Reset(void)
 		//set_spiclk_pin_high();
         usleep(50*1000);
         usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
+        usleep(50*1000);
+        usleep(50*1000);
         set_reset_pin_high(); // RESET
         usleep(50*1000);
         usleep(50*1000);
         usleep(50*1000);
-        //usleep(50*1000);
-        //usleep(50*1000);
+        usleep(50*1000);
+        usleep(50*1000);
 }
 
 

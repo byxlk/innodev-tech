@@ -315,7 +315,9 @@ static int gpio_spi_byte_write(unsigned char reg, unsigned char val)
         int i = 0;
         
         // first: send 0x20
-        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH); // CS
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH);
+        set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_HIGH);
+        set_gpio_value(GPIO_SPI_SDI, GPIO_VAL_HIGH);
         udelay(DELAY_DAT);
         set_gpio_value(GPIO_SPI_CS, GPIO_VAL_LOW); // CS
         udelay(DELAY_CS);
@@ -373,7 +375,9 @@ static unsigned char gpio_spi_byte_read(unsigned char reg)
         //_DEBUG("step 1: send 0x60");
         
         // first: send 0x60
-        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH); // CS
+        set_gpio_value(GPIO_SPI_CS, GPIO_VAL_HIGH);
+        set_gpio_value(GPIO_SPI_CLK, GPIO_VAL_HIGH);
+        set_gpio_value(GPIO_SPI_SDI, GPIO_VAL_HIGH);
         udelay(DELAY_DAT);
         set_gpio_value(GPIO_SPI_CS, GPIO_VAL_LOW); // CS       
         udelay(DELAY_CS);
