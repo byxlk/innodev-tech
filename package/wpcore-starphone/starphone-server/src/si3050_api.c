@@ -599,42 +599,45 @@ void Si3050_Dial_PhoneNum(char dial_num)
 /*------------------------------------------------------------------------------*/
 int XW_Si3050_DAA_System_Init(void)
 {
-        //unsigned char regCfg = 0;
+    //unsigned char regCfg = 0;
 
-        SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
+    SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
+   
+    // need init pcm clock before reset Si3050
+    if(Si3050_Pcm_DriverInit(DTSystemInfo) < 0)
+    {		
+        _ERROR("si3050 pcm driver devices init faild...");
+	    return -1;
+	}
 
-        gpio_spi_port_dir_init();
+    // init gpio port direct and init value
+    gpio_spi_port_dir_init();
 
-        // reset si3050 with set low level for reset pin
-        Si3050_Pin_Reset();
-        _DEBUG("Reset si3050 hardware complete...");
+    // reset si3050 with set low level for reset pin
+    Si3050_Pin_Reset();
+    _DEBUG("Reset si3050 hardware complete...");
     
-        // Check the Version to make sure SPI Conmunication is OK
-        Si3050_Get_VersionInfo();
+    // Check the Version to make sure SPI Conmunication is OK
+    Si3050_Get_VersionInfo();
         
 	/* Initialize and power up DAA */
 	if(Si3050_Hw_Reset() == 0)
 	{
-            _ERROR("si3050 config reset register value faild...");
+        _ERROR("si3050 config reset register value faild...");
 	    return -1;
 	}	
-        _DEBUG("Reset si3050 softare complete...");
+    _DEBUG("Reset si3050 softare complete...");
         
         
 	/* enable PCM and assign timeslot for PCM */
 	Si3050_Pcm_PortInit(1);
-        if(Si3050_Pcm_DriverInit(DTSystemInfo) < 0)
-        {		
-            _ERROR("si3050 pcm driver devices init faild...");
-	    return -1;
-	}
 
 	/* Enable intterupt */
 	gpio_spi_write(SI3050_REG_CONTROL2, 0x83); //0x87
  
-        //Si3050_Power_Up_Si3019();
+    //Si3050_Power_Up_Si3019();
 
-        return 0;
+    return 0;
 }
 
 void *XW_Pthread_ModemCtrlDeamon(void *args)
@@ -642,7 +645,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
 	char *sock_send_msg = NULL;
         thread_arg *pthread_client = NULL; 
     
-        MspSendCmd_t cmdData;	//��Ϣ���д���ṹ	
+        MspSendCmd_t cmdData;	//??Ϣ???д????ṹ	
 	STATE_PREVIEW *p;
         PTHREAD_BUF send_buf;
         SPS_SYSTEM_INFO_T *DTSystemInfo = XW_Global_InitSystemInfo();
@@ -698,7 +701,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
                 { 
         		if(get_phone_busy_status() == 1)
                         {
-        			sock_send_msg = "busy\n"; //  關閉撥號狀�?
+        			sock_send_msg = "busy\n"; //  關閉撥號狀???
         			sock_send(pthread_client->connfd, sock_send_msg, strlen(sock_send_msg));
                                 _DEBUG("phone is busy now !");
         			continue;
@@ -741,16 +744,16 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
                 /*        	
         	else if(strncmp(send_buf.m_buffer, "key:", 4)==0) { // 通話中的按鍵:0~9, *, #
         		if(busy==0) {
-        			sock_send_msg = "no communication\n"; // 還在掛機狀�? 不能用這個指�?
+        			sock_send_msg = "no communication\n"; // 還在掛機狀??? 不能用這個指???
         			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
         			return;
         		}
         		modem_mute = 1; // 靜音, 避免干擾 dtmf tone
-        		usleep(500000); // delay, 因為 modem 出聲音本來就有延�?
+        		usleep(500000); // delay, 因為 modem 出聲音本來就有延???
         		//char number[50];
         		//strncpy(number, buf+5, strlen(buf)-5);
         		char buf2[3] = {0x21, 0x1, 0};
-        		if(send_buf.m_buffer[4]>=49 && send_buf.m_buffer[4]<=57) { // 1~9直接�?
+        		if(send_buf.m_buffer[4]>=49 && send_buf.m_buffer[4]<=57) { // 1~9直接???
         			buf2[2] = send_buf.m_buffer[4]-48;
         		}else if(send_buf.m_buffer[4]=='*')  {
         			buf2[2] = 0xb;
@@ -762,7 +765,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		//send_pstn(3, buf2);
         		sock_send_msg = "key_ok\n";
         		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
-        		usleep(500000); // delay, 因為 modem ?��聲音本來就有延遲
+        		usleep(500000); // delay, 因為 modem ???聲音本來就有延遲
         		modem_mute = 0;
         		//exit(-1);
         	}        	
@@ -783,7 +786,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		if(arg->peer != NULL) {
         			_send(arg->peer->connfd, sock_send_msg, strlen(sock_send_msg));
         			(*arg->peer).peer = NULL; // 清除對方
-        			arg->peer = NULL; // 清除自己紀�?
+        			arg->peer = NULL; // 清除自己紀???
         			arg->busy=0;
         			printf("id=%d",arg->id);
         		} else {
@@ -792,7 +795,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		sock_send_msg ="ok\n";
         		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
         	}
-        	else if(strcmp(send_buf.m_buffer, "pick_up")==0) { // 外線有人接起�?
+        	else if(strcmp(send_buf.m_buffer, "pick_up")==0) { // 外線有人接起???
         		//broadcast_clients("ring_end\n");
         		//thread_arg_hook arg_hook;
         		//arg_hook.caddr = arg->caddr;
@@ -807,7 +810,7 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         		// find client with the id
         		for(i=0;i<MAX;i++) {
         			printf("enter internal top\n,internal id =%d\n",clients[i]->id);
-        			if(clients[i]->id == atoi(send_buf.m_buffer+9)) { // atoi 會自動忽略無法轉的字�?
+        			if(clients[i]->id == atoi(send_buf.m_buffer+9)) { // atoi 會自動忽略無法轉的字???
         				// 對方忙線
         				if(clients[i]->peer != NULL || clients[i]->busy==1) {
         					sock_send_msg ="busy\n";
@@ -836,19 +839,19 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         	else if(strncmp(send_buf.m_buffer, "register:", 9)==0) { // test_dial:12345 註冊分機號碼
         		// check exist
         		for(i=0;i<MAX;i++) {
-        			if(clients[i]->id == atoi(send_buf.m_buffer+9)) { // atoi 會自動忽略無法轉的字�?
+        			if(clients[i]->id == atoi(send_buf.m_buffer+9)) { // atoi 會自動忽略無法轉的字???
         				char *buf2 = "register_exist\n";
         				_send(arg->connfd, buf2, strlen(buf2));
         				return;
         			}
         		}
-        		// 沒重�? 登記成功
+        		// 沒重??? 登記成功
         		arg->id = atoi(send_buf.m_buffer+9);
         		sock_send_msg ="register_ok\n";
         		_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
         	}
         	else if(strncmp(send_buf.m_buffer, "deny", 4)==0) { // 拒接外線
-        		// 拿起再馬上掛�?
+        		// 拿起再馬上掛???
         		char buf2[2] = {0x12, 0}; // off-hook
         		send_pstn(2, buf2);
         		
@@ -864,9 +867,9 @@ void *XW_Pthread_ModemCtrlDeamon(void *args)
         			
         			sock_send_msg = "switch_ok\n";
         			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
-        			busy = 1; // FIXME: 強制再指定成1, 要找是那邊把他變�?0 �?
+        			busy = 1; // FIXME: 強制再指定成1, 要找是那邊把他變???0 ???
         		} else {
-        			sock_send_msg = "no communication\n"; // 還在掛機狀�? 不能用這個指�?
+        			sock_send_msg = "no communication\n"; // 還在掛機狀??? 不能用這個指???
         			_send(arg->connfd, sock_send_msg, strlen(sock_send_msg));
         		}
         	}
